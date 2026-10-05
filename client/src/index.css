@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-ink-100 text-ink-800 antialiased;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* Visible focus for keyboard users on every interactive element. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white;
+  }
+
+  ::-webkit-scrollbar {
+    @apply h-2 w-2;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-ink-100;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-ink-300;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink-400;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-ink-200 bg-white shadow-card;
+  }
+
+  .card-header {
+    @apply flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-ink-100
+           px-3.5 py-3 sm:px-5 sm:py-4;
+  }
+
+  .card-title {
+    @apply text-xs font-semibold uppercase tracking-wide text-ink-500 sm:text-sm;
+  }
+
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-lg px-3.5 py-2
+           text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800;
+  }
+  .btn-secondary {
+    @apply btn border border-ink-200 bg-white text-ink-700 hover:bg-ink-50;
+  }
+  .btn-ghost {
+    @apply btn text-ink-600 hover:bg-ink-100;
+  }
+  .btn-danger {
+    @apply btn bg-brand-600 text-white hover:bg-brand-700;
+  }
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-xs;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800
+           placeholder:text-ink-400 focus:border-brand-500 focus:outline-none
+           focus:ring-1 focus:ring-brand-500;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-500;
+  }
+
+  .table-wrap {
+    @apply overflow-x-auto;
+    /* keeps wide tables from forcing the whole page to scroll sideways */
+    @apply overscroll-x-contain;
+  }
+
+  .th {
+    @apply whitespace-nowrap px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide
+           text-ink-500 sm:px-4 sm:py-3 sm:text-xs;
+  }
+  .td {
+    @apply whitespace-nowrap px-3 py-2.5 text-sm text-ink-700 sm:px-4 sm:py-3;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+
+  .link {
+    @apply font-medium text-brand-600 underline-offset-2 hover:underline;
+  }
+}
+
+/* ------------------------------------------------------------ Leaflet ---- */
+.leaflet-container {
+  @apply h-full w-full bg-ink-100 font-sans;
+  z-index: 0;
+}
+
+/* Keep map panes below the sidebar and header. */
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 0;
+}
+
+.leaflet-control-attribution {
+  @apply bg-white/85 text-[10px] text-ink-500;
+}
+.leaflet-control-attribution a {
+  @apply text-ink-600;
+}
+.leaflet-bar {
+  @apply rounded-lg border-0 shadow-pop;
+}
+.leaflet-bar a {
+  @apply border-ink-200 text-ink-700;
+}
+
+/* Vehicle markers are plain divs so they inherit the design tokens. */
+.vehicle-marker {
+  @apply flex h-7 w-7 items-center justify-center rounded-full border-2 border-white
+         shadow-[0_1px_4px_rgb(0_0_0/0.35)];
+  transition: transform 120ms ease-out;
+}
+.vehicle-marker:hover {
+  transform: scale(1.15);
+  z-index: 500;
+}
+.vehicle-marker-selected {
+  @apply ring-2 ring-brand-500 ring-offset-2 ring-offset-white;
+}
+
+.map-popup {
+  @apply min-w-[13rem] rounded-lg border border-ink-200 bg-white p-3 shadow-pop;
+}
+.map-popup .leaflet-popup-content {
+  @apply m-0 w-auto;
+}
+.map-popup .leaflet-popup-content-wrapper {
+  @apply rounded-lg p-0;
+}
+.map-popup .leaflet-popup-tip {
+  @apply border-ink-200;
+}
+
+/* -------------------------------------------------------------- Print ---- */
+/* The report page is designed to come out clean on paper / as PDF. */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm 12mm;
+  }
+
+  html,
+  body {
+    @apply bg-white text-black;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-page {
+    @apply shadow-none;
+  }
+
+  .card {
+    @apply rounded-none border-ink-300 shadow-none;
+    break-inside: avoid;
+  }
+
+  .print-break-before {
+    break-before: page;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-footer-group;
+  }
+  tr,
+  img {
+    break-inside: avoid;
+  }
+
+  .leaflet-container {
+    /* OSM raster tiles are fine to print; vector layers are not. */
+    filter: none;
+  }
+}

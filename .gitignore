@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# server
+server/data/
+server/*.db
+server/*.db-journal
+server/*.db-wal
+server/*.db-shm
+server/*.log
+server/.env
+
+# client
+client/dist/
+client/.vite/
+
+# editors / os
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log

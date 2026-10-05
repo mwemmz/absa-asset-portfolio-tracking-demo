@@ -1,0 +1,21 @@
+{
+  "name": "@absa-demo/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Portfolio tracking demo API + vehicle simulation engine",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "node src/seed.js",
+    "reset": "node src/seed.js --force",
+    "smoke": "node scripts/smoke.js",
+    "fetch-routes": "node scripts/fetch-routes.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
