@@ -2,8 +2,8 @@ import { spawnSync } from 'node:child_process';
 import express from 'express';
 import cors from 'cors';
 
-import { db, nowIso } from './db.js';
-import { CLIENT_ORIGIN, DB_PATH, DEMO_NOTICE, PORT, SIM_ENABLED } from './config.js';
+import { db, driver, nowIso } from './db.js';
+import { CLIENT_ORIGIN, DEMO_NOTICE, PORT, SIM_ENABLED, TURSO_URL } from './config.js';
 import { clearSessions, login, requireAuth, sessionCount } from './lib/auth.js';
 import { HttpError, handler, text } from './lib/validate.js';
 import { alertsRouter } from './routes/alerts.js';
@@ -32,7 +32,8 @@ app.get(
     res.json({
       ok: true,
       time: nowIso(),
-      db: DB_PATH,
+      db: TURSO_URL || driver,
+      driver,
       simulation: sim.status(),
       sessions: sessionCount(),
       notice: DEMO_NOTICE,
@@ -43,10 +44,10 @@ app.get(
 /* -------------------------------------------------------------- auth ---- */
 app.post(
   '/api/login',
-  handler((req, res) => {
+  handler(async (req, res) => {
     const email = text(req.body?.email, { max: 200, label: 'email', required: true });
     const password = text(req.body?.password, { max: 200, label: 'password', required: true });
-    res.json({ ...login(email, password), notice: DEMO_NOTICE });
+    res.json({ ...(await login(email, password)), notice: DEMO_NOTICE });
   }),
 );
 
@@ -69,8 +70,8 @@ app.use('/api/reports', reportsRouter);
 /* ------------------------------------------------------------- routes --- */
 app.get(
   '/api/routes',
-  handler((_req, res) => {
-    const rows = db
+  handler(async (_req, res) => {
+    const rows = await db
       .prepare(
         `SELECT id, name, corridor, via, distance_meters, avg_speed_kph, bounds, points
            FROM routes ORDER BY id`,
@@ -96,7 +97,7 @@ app.get(
 app.post(
   '/api/demo/reset',
   requireAuth,
-  handler((req, res) => {
+  handler(async (req, res) => {
     if (req.user.role !== 'admin') {
       throw new HttpError(403, 'Only the demo administrator can reset the dataset');
     }
@@ -110,7 +111,7 @@ app.post(
       console.error('[demo] reset failed', result.stderr);
       throw new HttpError(500, 'Reset failed. Run "npm run reset" in /server instead.');
     }
-    if (SIM_ENABLED) sim.start();
+    if (SIM_ENABLED) await sim.start();
     res.json({ reset: true, at: nowIso(), output: result.stdout.trim().split('\n') });
   }),
 );
@@ -119,8 +120,8 @@ app.post(
 app.post(
   '/api/demo/tick',
   requireAuth,
-  handler((_req, res) => {
-    res.json(sim.tick());
+  handler(async (_req, res) => {
+    res.json(await sim.tick());
   }),
 );
 
@@ -140,8 +141,9 @@ app.use((err, _req, res, _next) => {
 });
 
 /* --------------------------------------------------------------- boot --- */
-function ensureSeeded() {
-  const n = db.prepare('SELECT COUNT(*) AS n FROM vehicles').get().n;
+async function ensureSeeded() {
+  const countVehicles = db.prepare('SELECT COUNT(*) AS n FROM vehicles');
+  const n = (await countVehicles.get()).n;
   if (n > 0) return n;
   console.log('[seed] empty database, seeding now...');
   const result = spawnSync(process.execPath, ['src/seed.js'], { cwd: process.cwd(), encoding: 'utf8' });
@@ -150,18 +152,18 @@ function ensureSeeded() {
     throw new Error('Seeding failed. Run "npm run seed" in /server.');
   }
   console.log(result.stdout.trim());
-  return db.prepare('SELECT COUNT(*) AS n FROM vehicles').get().n;
+  return (await countVehicles.get()).n;
 }
 
-const seeded = ensureSeeded();
-if (SIM_ENABLED) sim.start();
+const seeded = await ensureSeeded();
+if (SIM_ENABLED) await sim.start();
 
 app.listen(PORT, () => {
   console.log(`\n  Absa portfolio tracking - CONCEPT DEMO (simulated data)`);
   console.log(`  API      http://localhost:${PORT}/api`);
   console.log(`  Health   http://localhost:${PORT}/api/health`);
   console.log(`  Client   ${CLIENT_ORIGIN}`);
-  console.log(`  Database ${DB_PATH} (${seeded} vehicles)\n`);
+  console.log(`  Database ${TURSO_URL || 'local SQLite file'} via ${driver} (${seeded} vehicles)\n`);
 });
 
 function shutdown(signal) {

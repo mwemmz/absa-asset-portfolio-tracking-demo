@@ -7,8 +7,8 @@
  * Everything written here is invented. No Absa customer data is used.
  */
 import { readFileSync } from 'node:fs';
-import { db, nowIso } from './db.js';
-import { DB_PATH } from './config.js';
+import { db, driver, nowIso } from './db.js';
+import { DB_PATH, TURSO_URL } from './config.js';
 import { GEOFENCES, USERS, buildVehicleRows } from './data/seed-data.js';
 import { advanceAlongPath, bearingDeg, distanceToPolylineM, offsetM, pointInPolygon } from './lib/geo.js';
 
@@ -36,18 +36,18 @@ const ROUTES = JSON.parse(
 const NOW = Date.now();
 const DAY = 86400000;
 
-function count(table) {
-  return db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n;
+async function count(table) {
+  return (await db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get()).n;
 }
 
-if (count('vehicles') > 0 && !force) {
-  console.log(`Database already seeded (${count('vehicles')} vehicles).`);
+if ((await count('vehicles')) > 0 && !force) {
+  console.log(`Database already seeded (${await count('vehicles')} vehicles).`);
   console.log('Run "npm run reset" to wipe and reseed.');
   process.exit(0);
 }
 
 /* ------------------------------------------------------------------ wipe */
-db.exec(`
+await db.exec(`
   DELETE FROM alert_events;
   DELETE FROM alerts;
   DELETE FROM positions;
@@ -62,7 +62,7 @@ db.exec(`
 const insertUser = db.prepare(
   'INSERT INTO users (email, password, name, role, created_at) VALUES (@email, @password, @name, @role, @created_at)',
 );
-for (const u of USERS) insertUser.run({ ...u, created_at: nowIso() });
+for (const u of USERS) await insertUser.run({ ...u, created_at: nowIso() });
 
 /* ---------------------------------------------------------------- routes */
 const insertRoute = db.prepare(
@@ -71,7 +71,7 @@ const insertRoute = db.prepare(
 );
 const routeMap = new Map();
 for (const r of ROUTES.routes) {
-  insertRoute.run({
+  await insertRoute.run({
     id: r.id,
     name: r.name,
     corridor: r.corridor,
@@ -90,7 +90,7 @@ const insertGeofence = db.prepare(
    VALUES (@id, @name, @type, @severity, @description, @polygon, @created_at)`,
 );
 for (const g of GEOFENCES) {
-  insertGeofence.run({
+  await insertGeofence.run({
     id: g.id,
     name: g.name,
     type: g.type,
@@ -170,14 +170,14 @@ const OPENING_MIX = {
 };
 
 const vehicles = [];
-const insertAll = db.transaction(() => {
+const insertAll = db.transaction(async () => {
   let movingLeft = OPENING_MIX.moving;
   let stoppedLeft = OPENING_MIX.stopped;
   let offlineLeft = OPENING_MIX.offline;
 
   for (const [idx, row] of vehicleRows.entries()) {
     const route = routeMap.get(row.route_id);
-    const info = insertVehicle.run({
+    const info = await insertVehicle.run({
       ...row,
       odometer_km: Math.round(between(18000, 340000)),
       uptime_seconds: Math.round(between(0.62, 0.985) * 100) / 100,
@@ -220,7 +220,7 @@ const insertAll = db.transaction(() => {
     const stoppedAgo = status === 'stopped' ? between(4, 42) * 60000 : null;
     const offlineAgo = status === 'offline' ? between(2, 55) * 60000 : null;
 
-    updateVehicle.run({
+    await updateVehicle.run({
       id,
       status,
       device_status: deviceStatus,
@@ -248,7 +248,7 @@ const insertAll = db.transaction(() => {
       const ts = new Date(NOW - (HISTORY_STEPS - h) * HISTORY_STEP_MS).toISOString();
       const moving = h < trail.length - 1 && chance(0.93);
       const gf = geofences.find((g) => pointInPolygon(p.point, g.polygon));
-      insertPosition.run({
+      await insertPosition.run({
         vehicle_id: id,
         lat: p.point[0],
         lng: p.point[1],
@@ -284,7 +284,7 @@ const insertAll = db.transaction(() => {
     });
   }
 });
-insertAll();
+await insertAll();
 
 /* ---------------------------------------------------------------- alerts */
 const insertAlert = db.prepare(
@@ -353,7 +353,7 @@ const HISTORY_DAYS = 62;
 const startTs = NOW - HISTORY_DAYS * DAY;
 const perDay = 5;
 
-const seedAlerts = db.transaction(() => {
+const seedAlerts = db.transaction(async () => {
   for (let day = HISTORY_DAYS; day >= 0; day -= 1) {
     const dayStart = startTs + (HISTORY_DAYS - day) * DAY;
     const count = perDay + Math.floor(between(-1, 3));
@@ -395,7 +395,7 @@ const seedAlerts = db.transaction(() => {
       const gf = chance(0.35) ? pick(geofences) : null;
       const locationLabel = gf ? gf.name : `${vehicle.route.corridor}`;
 
-      const info = insertAlert.run({
+      const info = await insertAlert.run({
         vehicle_id: vehicle.id,
         type: spec.type,
         severity: spec.severity,
@@ -432,11 +432,11 @@ const seedAlerts = db.transaction(() => {
           ts: at.toISOString(),
         });
 
-      ev('created', null, 'new', 'Alert raised automatically by the simulation engine.', createdAt);
+      await ev('created', null, 'new', 'Alert raised automatically by the simulation engine.', createdAt);
       if (verifiedAt) {
-        ev('verified', 'new', 'verified', pick(VERIFY_NOTES), verifiedAt, 'Control Room Monitor', 'monitor');
+        await ev('verified', 'new', 'verified', pick(VERIFY_NOTES), verifiedAt, 'Control Room Monitor', 'monitor');
         if (responseStatus === 'dispatched' || responseStatus === 'on_site' || responseStatus === 'stood_down') {
-          insertEvent.run({
+          await insertEvent.run({
             alert_id: alertId,
             vehicle_id: vehicle.id,
             action: 'response_dispatched',
@@ -452,15 +452,15 @@ const seedAlerts = db.transaction(() => {
         }
       }
       if (escalatedAt) {
-        ev('escalated', verifiedAt ? 'verified' : 'new', 'escalated', pick(ESCALATE_NOTES), escalatedAt, 'Demo Administrator', 'admin');
+        await ev('escalated', verifiedAt ? 'verified' : 'new', 'escalated', pick(ESCALATE_NOTES), escalatedAt, 'Demo Administrator', 'admin');
       }
       if (resolvedAt) {
-        ev('resolved', escalatedAt ? 'escalated' : verifiedAt ? 'verified' : 'new', 'resolved', pick(RESOLVE_NOTES), resolvedAt, 'Demo Administrator', 'admin');
+        await ev('resolved', escalatedAt ? 'escalated' : verifiedAt ? 'verified' : 'new', 'resolved', pick(RESOLVE_NOTES), resolvedAt, 'Demo Administrator', 'admin');
       }
     }
   }
 });
-seedAlerts();
+await seedAlerts();
 
 /* ------------------------------------------------------------ open alerts */
 const insertOpenAlert = db.prepare(
@@ -473,11 +473,11 @@ const insertOpenAlert = db.prepare(
   )`,
 );
 
-function raiseOpen({ vehicle, type, severity, status, response_status, title, details, location_label, minutesAgo }) {
+async function raiseOpen({ vehicle, type, severity, status, response_status, title, details, location_label, minutesAgo }) {
   const createdAt = new Date(NOW - minutesAgo * 60000);
   const i0 = Math.floor(Math.min(vehicle.routePos, vehicle.route.points.length - 1));
   const pt = vehicle.route.points[i0] ?? [0, 0];
-  const info = insertOpenAlert.run({
+  const info = await insertOpenAlert.run({
     vehicle_id: vehicle.id,
     type,
     severity,
@@ -491,8 +491,8 @@ function raiseOpen({ vehicle, type, severity, status, response_status, title, de
     created_at: createdAt.toISOString(),
     updated_at: createdAt.toISOString(),
   });
-  const alertId = info.lastInsertRowid;
-  insertEvent.run({
+const alertId = info.lastInsertRowid;
+    await insertEvent.run({
     alert_id: alertId,
     vehicle_id: vehicle.id,
     action: 'created',
@@ -506,7 +506,7 @@ function raiseOpen({ vehicle, type, severity, status, response_status, title, de
     ts: createdAt.toISOString(),
   });
   if (status !== 'new') {
-    insertEvent.run({
+    await insertEvent.run({
       alert_id: alertId,
       vehicle_id: vehicle.id,
       action: status,
@@ -528,7 +528,7 @@ const deviatingVehicle = vehicles.find((v) => v.deviation > 500);
 const stoppedVehicle = vehicles.find((v) => v.status === 'stopped');
 
 if (offlineVehicle) {
-  raiseOpen({
+  await raiseOpen({
     vehicle: offlineVehicle,
     type: 'device_disconnected',
     severity: 'high',
@@ -540,7 +540,7 @@ if (offlineVehicle) {
   });
 }
 if (deviatingVehicle) {
-  raiseOpen({
+  await raiseOpen({
     vehicle: deviatingVehicle,
     type: 'route_deviation',
     severity: 'medium',
@@ -551,7 +551,7 @@ if (deviatingVehicle) {
   });
 }
 if (stoppedVehicle) {
-  raiseOpen({
+  await raiseOpen({
     vehicle: stoppedVehicle,
     type: 'prolonged_stop',
     severity: 'medium',
@@ -562,7 +562,7 @@ if (stoppedVehicle) {
     minutesAgo: 52,
   });
 }
-raiseOpen({
+await raiseOpen({
   vehicle: vehicles[5],
   type: 'tamper',
   severity: 'critical',
@@ -574,14 +574,15 @@ raiseOpen({
 
 /* ----------------------------------------------------------------- done */
 const summary = {
-  db: DB_PATH,
+  db: TURSO_URL || DB_PATH,
+  driver,
   users: USERS.length,
   routes: routeMap.size,
   geofences: geofences.length,
-  vehicles: count('vehicles'),
-  positions: count('positions'),
-  alerts: count('alerts'),
-  alertEvents: count('alert_events'),
+  vehicles: await count('vehicles'),
+  positions: await count('positions'),
+  alerts: await count('alerts'),
+  alertEvents: await count('alert_events'),
 };
 
 console.log('Seed complete:');

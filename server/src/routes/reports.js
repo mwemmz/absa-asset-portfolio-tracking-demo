@@ -48,11 +48,11 @@ function median(values) {
 const round1 = (n) => (n == null ? null : Math.round(n * 10) / 10);
 const round2 = (n) => (n == null ? null : Math.round(n * 100) / 100);
 
-function aggregate(month) {
+async function aggregate(month) {
   const { start, end } = monthBounds(month);
   const totalDays = daysInMonth(month);
 
-  const created = db
+  const created = await db
     .prepare(
       `SELECT a.*, v.reg AS reg, v.driver AS driver, v.make_model AS make_model,
               v.route_id AS route_id, v.agreement_ref AS agreement_ref,
@@ -60,7 +60,7 @@ function aggregate(month) {
          FROM alerts a JOIN vehicles v ON v.id = a.vehicle_id
         WHERE a.created_at >= ? AND a.created_at < ?`,
     )
-    .all(start, end);
+    .all([start, end]);
 
   const byType = ALERT_TYPES.map((type) => {
     const rows = created.filter((a) => a.type === type);
@@ -111,19 +111,19 @@ function aggregate(month) {
   for (let day = 1; day <= lastDay; day += 1) trend.push({ day, count: trendByDay.get(day) ?? 0 });
 
   const vehicleIds = [...new Set(created.map((a) => a.vehicle_id))];
-  const vehicles = vehicleIds
-    .map((id) => {
-      const v = db
-        .prepare(
-          `SELECT v.*, r.corridor AS route_corridor FROM vehicles v
-             LEFT JOIN routes r ON r.id = v.route_id WHERE v.id = ?`,
-        )
-        .get(id);
-      if (!v) return null;
+  const findVehicle = db.prepare(
+    `SELECT v.*, r.corridor AS route_corridor FROM vehicles v
+       LEFT JOIN routes r ON r.id = v.route_id WHERE v.id = ?`,
+  );
+
+  const vehicles = [];
+  for (const id of vehicleIds) {
+      const v = await findVehicle.get([id]);
+      if (!v) continue;
       const mine = created.filter((a) => a.vehicle_id === id);
       const resolved = mine.filter((a) => a.status === 'resolved');
       const mineHours = resolved.map((a) => (new Date(a.resolved_at) - new Date(a.created_at)) / 3600000);
-      return {
+      vehicles.push({
         id: v.id,
         reg: v.reg,
         driver: v.driver,
@@ -142,12 +142,12 @@ function aggregate(month) {
         open: mine.length - resolved.length,
         escalated: mine.filter((a) => a.status === 'escalated').length,
         avgResolutionHours: mineHours.length ? round1(mineHours.reduce((s, h) => s + h, 0) / mineHours.length) : null,
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.alerts - a.alerts || b.uptimePct - a.uptimePct);
+      });
+  }
 
-  const fleet = db
+  vehicles.sort((a, b) => b.alerts - a.alerts || b.uptimePct - a.uptimePct);
+
+  const fleet = await db
     .prepare(
       `SELECT COUNT(*) AS n, COALESCE(SUM(asset_value_zmw), 0) AS value,
               COALESCE(AVG(MIN(MAX(uptime_seconds, 0), 1)), 0) AS uptime
@@ -202,10 +202,10 @@ function aggregate(month) {
 
 reportsRouter.get(
   '/monthly',
-  handler((req, res) => {
+  handler(async (req, res) => {
     const month = monthParam(req.query.month, new Date().toISOString().slice(0, 7));
-    const current = aggregate(month);
-    const previous = aggregate(shiftMonth(month, -1));
+    const current = await aggregate(month);
+    const previous = await aggregate(shiftMonth(month, -1));
 
     const delta = (a, b) => (b === 0 ? (a === 0 ? 0 : null) : round1(((a - b) / b) * 100));
 
@@ -231,8 +231,8 @@ reportsRouter.get(
 /** Months that actually contain data, for the report page's month picker. */
 reportsRouter.get(
   '/months',
-  handler((_req, res) => {
-    const rows = db
+  handler(async (_req, res) => {
+    const rows = await db
       .prepare(
         `SELECT substr(created_at, 1, 7) AS month, COUNT(*) AS n
            FROM alerts GROUP BY month ORDER BY month DESC`,

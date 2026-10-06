@@ -20,10 +20,11 @@ function prune() {
   }
 }
 
-export function login(email, password) {
-  const user = db
-    .prepare('SELECT id, email, password, name, role FROM users WHERE email = ?')
-    .get(String(email ?? '').trim().toLowerCase());
+export async function login(email, password) {
+  const findUser = db.prepare(
+    'SELECT id, email, password, name, role FROM users WHERE email = ?',
+  );
+  const user = await findUser.get([String(email ?? '').trim().toLowerCase()]);
 
   // Compare against a dummy value when the user is unknown so a wrong email and
   // a wrong password take the same path.

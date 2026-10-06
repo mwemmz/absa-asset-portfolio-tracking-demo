@@ -6,16 +6,16 @@
   "description": "Portfolio tracking demo API + vehicle simulation engine",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "node --watch src/index.js",
-    "seed": "node src/seed.js",
-    "reset": "node src/seed.js --force",
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "dev": "node --env-file-if-exists=.env --watch src/index.js",
+    "seed": "node --env-file-if-exists=.env src/seed.js",
+    "reset": "node --env-file-if-exists=.env src/seed.js --force",
     "smoke": "node scripts/smoke.js",
     "fetch-routes": "node scripts/fetch-routes.js"
   },
   "dependencies": {
-    "better-sqlite3": "^12.2.0",
+    "@libsql/client": "^0.18.0",
     "cors": "^2.8.5",
-    "express": "^4.21.2"
+    "express": "^4"
   }
 }

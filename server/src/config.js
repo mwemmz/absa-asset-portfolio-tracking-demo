@@ -7,6 +7,17 @@ export const ROOT = path.resolve(__dirname, '..');
 export const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
 export const DB_PATH = process.env.DB_FILE || path.join(DATA_DIR, 'absa-demo.db');
 
+/**
+ * Turso / libSQL. Set TURSO_URL to the `libsql://<db>.turso.io` value that
+ * `turso db show <name> --url` prints, plus TURSO_AUTH_TOKEN, and the API talks
+ * to a remote libSQL database. Leave TURSO_URL empty and the same driver opens
+ * the local SQLite file, so there is only one code path and one SQL dialect.
+ *
+ * A `file:` URL also works, which is handy for pointing at a local libSQL file.
+ */
+export const TURSO_URL = process.env.TURSO_URL || '';
+export const TURSO_TOKEN = process.env.TURSO_AUTH_TOKEN || '';
+
 export const PORT = Number(process.env.PORT || 4000);
 export const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 

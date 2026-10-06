@@ -17,11 +17,12 @@ monthly fleet reports.
 
 ## Requirements
 
-- **Node.js 20.11+** (developed on v24) - `node --version`
+- **Node.js 22.9+** (developed on v24) - `node --version`
 - npm 9+
 
-No database server, no Docker, no API keys. The SQLite file is created and
-seeded automatically on first run.
+No database server, no Docker, no API keys. A local SQLite file is created and
+seeded automatically on first run. If you would rather use Turso, see
+[Using Turso](#using-turso) - it is the same SQL and the same code path.
 
 ## Quick start
 
@@ -63,7 +64,7 @@ Reset from inside the UI: **Admin -> Reset demo data** in the sidebar footer.
 │       ├── components/     Layout, map, badges, cards, feedback, demo disclosure
 │       ├── lib/            API client, auth, polling hooks, formatters, constants
 │       └── pages/          Login, Dashboard, LiveMap, Vehicles, VehicleDetail, Alerts, Report
-├── server/                 Express + better-sqlite3 + simulation engine
+├── server/                 Express + @libsql/client + simulation engine
 │   ├── src/
 │   │   ├── routes/         vehicles, geofences, alerts, stats, reports
 │   │   ├── data/           routes.json (baked OSRM geometry) + seed data
@@ -103,6 +104,52 @@ baked into `server/src/data/routes.json` from the OSRM demo server, so vehicles
 follow plausible Zambian roads rather than straight lines. The app makes no
 network requests at runtime for routing or tiles; map tiles come from
 openstreetmap.org and need an internet connection.
+
+## Using Turso
+
+The API speaks **libSQL**, so it runs against either a local SQLite file or a
+remote [Turso](https://turso.tech) database with the same SQL and the same code
+path. No Docker, no database server locally.
+
+With no configuration it uses the local file `server/data/absa-demo.db`.
+
+To use Turso, create a database and a token, then put both in `server/.env`:
+
+```bash
+npm install -g @turso/cli
+turso db create absa-demo            # or use an existing database
+turso db show absa-demo --url        # -> libsql://absa-demo-xxxx.turso.io
+turso db tokens create absa-demo     # -> eyJhbGci...
+```
+
+```bash
+cp server/.env.example server/.env
+```
+
+```ini
+TURSO_URL=libsql://absa-demo-xxxx.turso.io
+TURSO_AUTH_TOKEN=eyJhbGci...
+```
+
+Then seed it once and start as usual:
+
+```bash
+npm run reset     # wipes and seeds whichever database TURSO_URL points at
+npm run dev
+```
+
+`server/.env` is git-ignored. **Never commit the token.** `/api/health` reports
+`driver: "turso"` once it is connected, which is the quickest way to confirm the
+API is really talking to the remote database rather than the local file.
+
+Notes for the remote case:
+
+- Schema creation is handled on boot, so an empty database works; the server
+  also seeds itself when it finds no vehicles.
+- The API is not stateless-remote-friendly for high write rates: each simulation
+  tick is one transaction that rewrites the fleet. Five-second ticks against one
+  demo database are fine; do not point a second copy of the demo at the same
+  database at the same time.
 
 ## API
 
@@ -208,4 +255,7 @@ month-to-date.
 | Map is grey with no tiles | No internet connection - tiles are from openstreetmap.org. Vehicles and geofences still render |
 | "Your demo session has expired" | Sign in again. A reset also clears sessions |
 | Database looks wrong | `npm run reset` rebuilds it from scratch |
+| `TURSO_URL is set but TURSO_AUTH_TOKEN is empty` | Add the token to `server/.env`; `turso db tokens create <db-name>` |
+| `SERVER_ERROR: Server returned HTTP status 400` from Turso | The token is invalid, expired, or was revoked. Issue a new one and restart |
+| `/api/health` says `local-sqlite` but I expected Turso | `TURSO_URL` is not being read - check `server/.env` exists and has no stray quotes, and that the API was restarted after adding it |
 | Changing React breaks the app | This repo pins a single React version via root `overrides` and `resolve.dedupe`; do not let two copies of React into `node_modules` |

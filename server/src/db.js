@@ -1,13 +1,151 @@
 import fs from 'node:fs';
-import Database from 'better-sqlite3';
-import { DATA_DIR, DB_PATH } from './config.js';
+import path from 'node:path';
+import { createClient } from '@libsql/client';
+import { DATA_DIR, DB_PATH, TURSO_TOKEN, TURSO_URL } from './config.js';
 
-fs.mkdirSync(DATA_DIR, { recursive: true });
+/**
+ * One driver, one SQL dialect. With TURSO_URL set the API talks to a remote
+ * libSQL database (Turso); without it the same driver opens the local SQLite
+ * file. Remote is the deployment target, local is the zero-setup demo path.
+ */
+const remote = Boolean(TURSO_URL);
 
-export const db = new Database(DB_PATH);
+if (remote && !TURSO_TOKEN) {
+  throw new Error(
+    'TURSO_URL is set but TURSO_AUTH_TOKEN is empty. The demo writes on every request, ' +
+      'so it needs a token. Create one with: turso db tokens create <db-name>\n' +
+      'Then put both values in server/.env (see server/.env.example).',
+  );
+}
 
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+if (!remote) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+const localUrl = `file:${path.resolve(DB_PATH).split(path.sep).join('/')}`;
+
+export const client = createClient({
+  url: remote ? TURSO_URL : localUrl,
+  ...(remote ? { authToken: TURSO_TOKEN } : {}),
+});
+
+export const driver = remote ? 'turso' : 'local-sqlite';
+
+/**
+ * libSQL returns every INTEGER as a JS BigInt. That is more faithful than the
+ * old driver but it breaks `JSON.stringify`, so normalise the common case back
+ * to Number. Anything genuinely beyond 2^53 does not occur in this demo.
+ */
+function normalise(row) {
+  if (!row) return row;
+  const out = {};
+  for (const [k, v] of Object.entries(row)) {
+    out[k] = typeof v === 'bigint' ? Number(v) : v;
+  }
+  return out;
+}
+
+function normaliseResult(result) {
+  return {
+    ...result,
+    rows: result.rows.map(normalise),
+    lastInsertRowid:
+      typeof result.lastInsertRowid === 'bigint'
+        ? Number(result.lastInsertRowid)
+        : result.lastInsertRowid,
+    rowsAffected:
+      typeof result.rowsAffected === 'bigint'
+        ? Number(result.rowsAffected)
+        : result.rowsAffected,
+  };
+}
+
+/**
+ * Normalises whatever the call site passed into a libSQL-bindable value:
+ * a named-args object, a positional array, or a lone scalar wrapped into one.
+ * SQLite has no boolean bind, so booleans become 1/0 here rather than at 40
+ * separate call sites.
+ */
+function bind(params) {
+  if (params == null) return {};
+  if (Array.isArray(params)) return params.map(one);
+  if (typeof params === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(params)) out[k] = one(v);
+    return out;
+  }
+  return [one(params)];
+}
+
+function one(v) {
+  if (v === undefined) return null;
+  if (typeof v === 'boolean') return v ? 1 : 0;
+  return v;
+}
+
+/**
+ * The in-flight transaction, so statements issued inside a `db.transaction()`
+ * body join it instead of auto-committing on their own.
+ */
+let activeTx = null;
+
+/** Serialises transactions: a remote database has no nested write transactions. */
+let txQueue = Promise.resolve();
+
+const run = (sql, params) =>
+  (activeTx
+    ? activeTx.execute({ sql, args: bind(params) })
+    : client.execute({ sql, args: bind(params) })
+  ).then(normaliseResult);
+
+/**
+ * libSQL is HTTP-based, so every query returns a promise. This adapter keeps
+ * the better-sqlite3 call shape (`db.prepare(sql).get(params)`) so the query
+ * code stays readable and only needed `await` added at each call site.
+ */
+export const db = {
+  prepare(sql) {
+    return {
+      get: async (params) => (await run(sql, params)).rows[0] ?? null,
+      all: async (params) => (await run(sql, params)).rows,
+      run: (params) => run(sql, params),
+    };
+  },
+
+  exec: (sql) => client.executeMultiple(sql),
+
+  /**
+   * `client.transaction()` hands back a handle bound to one stream, which is the
+   * only thing that makes BEGIN/COMMIT reliable over HTTP. Bodies are queued so
+   * two concurrent requests cannot fight over `activeTx`.
+   */
+  transaction(fn) {
+    return (...args) => {
+      const task = txQueue.then(async () => {
+        const tx = await client.transaction('write');
+        activeTx = tx;
+        try {
+          const out = await fn(...args);
+          await tx.commit();
+          return out;
+        } catch (err) {
+          await tx.rollback().catch(() => {});
+          throw err;
+        } finally {
+          activeTx = null;
+        }
+      });
+      // Keep the queue alive even when this transaction rejects.
+      txQueue = task.then(
+        () => undefined,
+        () => undefined,
+      );
+      return task;
+    };
+  },
+
+  close() {
+    client.close();
+  },
+};
 
 /**
  * Bump this whenever the DDL below changes. `CREATE TABLE IF NOT EXISTS` silently
@@ -19,21 +157,32 @@ const SCHEMA_VERSION = 2;
 
 const KNOWN_TABLES = ['alert_events', 'alerts', 'positions', 'vehicles', 'geofences', 'routes', 'users'];
 
-const existingVersion = db.pragma('user_version', { simple: true });
-const hasExistingTables = KNOWN_TABLES.some(
-  (t) => !!db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?`).get(t),
+// WAL and foreign-key enforcement are per-connection settings on a local file.
+// A remote libSQL server owns its own journal mode, so only set these locally.
+if (!remote) {
+  await client.execute('PRAGMA journal_mode = WAL').catch(() => {});
+  await client.execute('PRAGMA foreign_keys = ON').catch(() => {});
+}
+
+const versionRow = await client.execute('PRAGMA user_version');
+const existingVersion = Number(versionRow.rows[0]?.user_version ?? 0);
+
+const found = await client.execute(
+  `SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (${KNOWN_TABLES.map(() => '?').join(', ')})`,
+  KNOWN_TABLES,
 );
+const hasExistingTables = found.rows.length > 0;
 
 // A database with no tables is fresh. Anything else with a mismatched version is stale.
 if (hasExistingTables && existingVersion !== SCHEMA_VERSION) {
-  db.exec(KNOWN_TABLES.map((t) => `DROP TABLE IF EXISTS ${t};`).join('\n'));
+  await client.executeMultiple(KNOWN_TABLES.map((t) => `DROP TABLE IF EXISTS ${t};`).join('\n'));
   console.warn(
     `[db] schema ${existingVersion} -> ${SCHEMA_VERSION}: rebuilt demo database (simulated data only).`,
   );
 }
-db.pragma(`user_version = ${SCHEMA_VERSION}`);
+await client.execute(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 
-db.exec(`
+await db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   email         TEXT    NOT NULL UNIQUE,
@@ -150,6 +299,8 @@ CREATE INDEX IF NOT EXISTS idx_alert_vehicle  ON alerts(vehicle_id, created_at D
 CREATE INDEX IF NOT EXISTS idx_alert_type     ON alerts(type);
 CREATE INDEX IF NOT EXISTS idx_events_alert   ON alert_events(alert_id, ts);
 `);
+
+console.log(`[db] driver: ${driver}${remote ? ` (${TURSO_URL})` : ` (${localUrl})`}`);
 
 export function nowIso() {
   return new Date().toISOString();

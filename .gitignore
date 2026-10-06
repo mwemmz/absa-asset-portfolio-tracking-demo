@@ -11,6 +11,8 @@ server/*.db-wal
 server/*.db-shm
 server/*.log
 server/.env
+server/.env.*
+!server/.env.example
 
 # client
 client/dist/

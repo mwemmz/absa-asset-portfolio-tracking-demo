@@ -108,9 +108,9 @@ export function onTick(fn) {
   return () => listeners.delete(fn);
 }
 
-export function raiseAlert(input) {
+export async function raiseAlert(input) {
   const createdAt = nowIso();
-  const info = S.insertAlert.run({
+  const info = await S.insertAlert.run({
     vehicle_id: input.vehicleId,
     type: input.type,
     severity: input.severity ?? 'medium',
@@ -131,7 +131,7 @@ export function raiseAlert(input) {
     source: input.source ?? 'simulation',
   });
   const alertId = Number(info.lastInsertRowid);
-  S.insertEvent.run({
+  await S.insertEvent.run({
     alert_id: alertId,
     vehicle_id: input.vehicleId,
     action: 'created',
@@ -148,7 +148,7 @@ export function raiseAlert(input) {
 }
 
 function addNote(alertId, vehicleId, action, fromStatus, toStatus, note) {
-  S.insertEvent.run({
+  return S.insertEvent.run({
     alert_id: alertId,
     vehicle_id: vehicleId,
     action,
@@ -164,10 +164,10 @@ function addNote(alertId, vehicleId, action, fromStatus, toStatus, note) {
 }
 
 /** Close every alert of `types` for this vehicle because the cause cleared. */
-function autoResolve(v, types, note) {
-  for (const a of S.openAlertsFor.all({ vehicle_id: v.id })) {
+async function autoResolve(v, types, note) {
+  for (const a of await S.openAlertsFor.all({ vehicle_id: v.id })) {
     if (!types.includes(a.type)) continue;
-    S.updateAlert.run({
+    await S.updateAlert.run({
       id: a.id,
       status: 'resolved',
       response_status: a.response_status === 'dispatched' || a.response_status === 'on_site' ? 'stood_down' : a.response_status,
@@ -177,22 +177,22 @@ function autoResolve(v, types, note) {
       resolved_at: nowIso(),
       resolved_by: 'simulation',
     });
-    addNote(a.id, v.id, 'auto_resolved', a.status, 'resolved', note);
+    await addNote(a.id, v.id, 'auto_resolved', a.status, 'resolved', note);
   }
 }
 
-function hasOpen(v, type) {
-  return !!S.openAlertFor.get({ vehicle_id: v.id, type });
+async function hasOpen(v, type) {
+  return !!(await S.openAlertFor.get({ vehicle_id: v.id, type }));
 }
 
 /* --------------------------------------------------------------- loading */
-export function load() {
+export async function load() {
   routes = new Map(
-    S.allRoutes.all().map((r) => [r.id, { ...r, points: JSON.parse(r.points) }]),
+    (await S.allRoutes.all()).map((r) => [r.id, { ...r, points: JSON.parse(r.points) }]),
   );
-  geofences = S.allGeofences.all().map((g) => ({ ...g, polygon: JSON.parse(g.polygon) }));
+  geofences = (await S.allGeofences.all()).map((g) => ({ ...g, polygon: JSON.parse(g.polygon) }));
 
-  const rows = S.allVehicles.all();
+  const rows = await S.allVehicles.all();
   const now = Date.now();
   state = new Map();
 
@@ -250,14 +250,14 @@ function zoneAt(point) {
   return geofences.find((g) => pointInPolygon(point, g.polygon)) ?? null;
 }
 
-function detectZoneChange(v, point) {
+async function detectZoneChange(v, point) {
   for (const g of geofences) {
     const inside = pointInPolygon(point, g.polygon);
     const was = v.insideZones.has(g.id);
     if (inside && !was) {
       v.insideZones.add(g.id);
       const lowInterest = g.type === 'depot';
-    raiseAlert({
+    await raiseAlert({
       vehicleId: v.id,
       type: 'geofence_breach',
       severity: g.severity,
@@ -272,7 +272,7 @@ function detectZoneChange(v, point) {
     });
   } else if (!inside && was) {
       v.insideZones.delete(g.id);
-      raiseAlert({
+      await raiseAlert({
         vehicleId: v.id,
         type: 'geofence_breach',
         severity: 'low',
@@ -287,7 +287,7 @@ function detectZoneChange(v, point) {
   }
 }
 
-function moveVehicle(v, dtSec, now) {
+async function moveVehicle(v, dtSec, now) {
   const points = v.route.points;
 
   // Lateral deviation grows while the incident is active, then the vehicle
@@ -309,7 +309,7 @@ function moveVehicle(v, dtSec, now) {
     const i = Math.floor(v.routePos);
     step.point = points[i];
     step.heading = bearingDeg(points[i], points[i + 1]);
-    autoResolve(v, ['prolonged_stop'], 'Vehicle resumed its journey after a scheduled turnaround.');
+    await autoResolve(v, ['prolonged_stop'], 'Vehicle resumed its journey after a scheduled turnaround.');
   } else {
     v.routePos = step.pos;
   }
@@ -330,8 +330,8 @@ function moveVehicle(v, dtSec, now) {
   // and the dashboard can show how long the vehicle has been silent.
   if (v.commsLostSince === 0) v.lastUpdate = now;
 
-  if (v.deviationM > DEVIATION_THRESHOLD_M && !hasOpen(v, 'route_deviation')) {
-    raiseAlert({
+  if (v.deviationM > DEVIATION_THRESHOLD_M && !(await hasOpen(v, 'route_deviation'))) {
+    await raiseAlert({
       vehicleId: v.id,
       type: 'route_deviation',
       severity: 'medium',
@@ -343,15 +343,15 @@ function moveVehicle(v, dtSec, now) {
       lng: v.lng,
     });
   } else if (v.deviationM <= DEVIATION_THRESHOLD_M / 2) {
-    autoResolve(v, ['route_deviation'], 'Vehicle returned to the approved corridor.');
+    await autoResolve(v, ['route_deviation'], 'Vehicle returned to the approved corridor.');
   }
 
-  detectZoneChange(v, display);
+  await detectZoneChange(v, display);
 }
 
 function writePosition(v, now) {
   const zone = zoneAt([v.lat, v.lng]);
-  S.insertPosition.run({
+  return S.insertPosition.run({
     vehicle_id: v.id,
     lat: v.lat,
     lng: v.lng,
@@ -378,7 +378,7 @@ function trackUptime(v, dtSec) {
 }
 
 function persist(v, now, lastUpdate) {
-  S.updateVehicle.run({
+  return S.updateVehicle.run({
     id: v.id,
     status: v.status,
     device_status: v.deviceStatus,
@@ -415,7 +415,7 @@ function rollIncident() {
   return INCIDENTS[0].type;
 }
 
-function triggerIncident(v, type, now) {
+async function triggerIncident(v, type, now) {
   v.lastEventAt = now;
   switch (type) {
     case 'prolonged_stop': {
@@ -425,8 +425,8 @@ function triggerIncident(v, type, now) {
         v.speedKph = 0;
         // The alert is raised immediately rather than after the threshold so a
         // short demo still shows one; note explains that.
-        if (!hasOpen(v, 'prolonged_stop')) {
-          raiseAlert({
+        if (!(await hasOpen(v, 'prolonged_stop'))) {
+          await raiseAlert({
             vehicleId: v.id,
             type: 'prolonged_stop',
             severity: 'medium',
@@ -452,9 +452,9 @@ function triggerIncident(v, type, now) {
       v.offlineSince = now;
       v.speedKph = 0;
       v.reconnectAt = now + between(2, 14) * 60000;
-      autoResolve(v, ['comms_lost'], 'Device disconnection confirmed - replaced the earlier communication loss.');
-      if (!hasOpen(v, 'device_disconnected')) {
-        raiseAlert({
+      await autoResolve(v, ['comms_lost'], 'Device disconnection confirmed - replaced the earlier communication loss.');
+      if (!(await hasOpen(v, 'device_disconnected'))) {
+        await raiseAlert({
           vehicleId: v.id,
           type: 'device_disconnected',
           severity: 'high',
@@ -471,8 +471,8 @@ function triggerIncident(v, type, now) {
     case 'comms_lost': {
       if (v.commsLostSince === 0 && v.status !== 'offline') {
         v.commsLostSince = now;
-        if (!hasOpen(v, 'comms_lost')) {
-          raiseAlert({
+        if (!(await hasOpen(v, 'comms_lost'))) {
+          await raiseAlert({
             vehicleId: v.id,
             type: 'comms_lost',
             severity: 'medium',
@@ -490,8 +490,8 @@ function triggerIncident(v, type, now) {
     case 'tamper': {
       if (v.deviceStatus !== 'tampered') {
         v.deviceStatus = 'tampered';
-        if (!hasOpen(v, 'tamper')) {
-          raiseAlert({
+        if (!(await hasOpen(v, 'tamper'))) {
+          await raiseAlert({
             vehicleId: v.id,
             type: 'tamper',
             severity: 'critical',
@@ -511,11 +511,11 @@ function triggerIncident(v, type, now) {
   }
 }
 
-const persistAll = db.transaction((vehicles, now) => {
-  for (const v of vehicles) persist(v, now, v.status === 'offline' ? v.lastUpdate : now);
+const persistAll = db.transaction(async (vehicles, now) => {
+  for (const v of vehicles) await persist(v, now, v.status === 'offline' ? v.lastUpdate : now);
 });
 
-export function tick() {
+export async function tick() {
   const now = Date.now();
   const dtSec = TICK_MS / 1000;
   tickCount += 1;
@@ -534,12 +534,12 @@ export function tick() {
         v.resumeAt = v.status === 'stopped' ? now + between(2, 8) * 60000 : 0;
         v.speedKph = v.status === 'moving' ? between(35, v.maxSpeed) : 0;
         v.lastUpdate = now;
-        autoResolve(
+        await autoResolve(
           v,
           ['device_disconnected', 'comms_lost'],
           'Device is reporting again. Connection restored.',
         );
-        if (v.deviceStatus === 'tampered') autoResolve(v, ['tamper'], 'Unit reseated and tamper cleared.');
+        if (v.deviceStatus === 'tampered') await autoResolve(v, ['tamper'], 'Unit reseated and tamper cleared.');
       }
     } else {
       // --- stopped vehicles ----------------------------------------------
@@ -549,11 +549,11 @@ export function tick() {
           v.stoppedSince = null;
           v.speedKph = between(30, v.maxSpeed);
           v.lastUpdate = now;
-          autoResolve(v, ['prolonged_stop'], 'Vehicle is moving again.');
+          await autoResolve(v, ['prolonged_stop'], 'Vehicle is moving again.');
         } else {
           v.speedKph = 0;
-          if (now - v.stoppedSince >= PROLONGED_STOP_MS && !hasOpen(v, 'prolonged_stop')) {
-            raiseAlert({
+          if (now - v.stoppedSince >= PROLONGED_STOP_MS && !(await hasOpen(v, 'prolonged_stop'))) {
+            await raiseAlert({
               vehicleId: v.id,
               type: 'prolonged_stop',
               severity: 'high',
@@ -577,7 +577,7 @@ export function tick() {
         v.offlineSince = now;
         v.speedKph = 0;
         v.reconnectAt = now + between(2, 14) * 60000;
-        raiseAlert({
+        await raiseAlert({
           vehicleId: v.id,
           type: 'device_disconnected',
           severity: 'high',
@@ -589,31 +589,31 @@ export function tick() {
           lat: v.lat,
           lng: v.lng,
         });
-        autoResolve(v, ['comms_lost'], 'Escalated to a confirmed device disconnection.');
+        await autoResolve(v, ['comms_lost'], 'Escalated to a confirmed device disconnection.');
       }
 
       // --- moving vehicles ------------------------------------------------
-      if (v.status === 'moving') moveVehicle(v, dtSec, now);
+      if (v.status === 'moving') await moveVehicle(v, dtSec, now);
 
       trackUptime(v, dtSec);
     }
 
     // A silent device reports nothing, so no position row and a stale lastUpdate.
-    if (v.status !== 'offline' && v.commsLostSince === 0) writePosition(v, now);
+    if (v.status !== 'offline' && v.commsLostSince === 0) await writePosition(v, now);
 
     if (now >= v.nextEventAt && v.status !== 'offline') {
-      triggerIncident(v, rollIncident(), now);
+      await triggerIncident(v, rollIncident(), now);
       v.nextEventAt = now + between(8, 45) * 60000;
     }
 
     if (v.status !== wasStatus) changed.push({ id: v.id, reg: v.reg, status: v.status });
   }
 
-  persistAll([...state.values()], now);
+  await persistAll([...state.values()], now);
 
   if (now - lastPruneAt > 3600000) {
     lastPruneAt = now;
-    S.prunePositions.run({ cutoff: new Date(now - POSITION_RETENTION_DAYS * 86400000).toISOString() });
+    await S.prunePositions.run({ cutoff: new Date(now - POSITION_RETENTION_DAYS * 86400000).toISOString() });
   }
 
   for (const fn of listeners) {
@@ -627,29 +627,42 @@ export function tick() {
   return { tick: tickCount, vehicles: state.size, changed };
 }
 
-export function start() {
+export async function start() {
   if (timer) return;
-  load();
+  await load();
   let consecutiveFailures = 0;
   let lastMessage = '';
-  timer = setInterval(() => {
-    try {
-      tick();
-      consecutiveFailures = 0;
-      lastMessage = '';
-    } catch (err) {
-      // Only log the first occurrence of a given failure, then keep quiet, so a
-      // broken tick cannot bury the rest of the server output.
-      consecutiveFailures += 1;
-      if (err.message !== lastMessage) {
-        lastMessage = err.message;
-        console.error('[sim] tick failed:', err);
-      } else if (consecutiveFailures === 25 || consecutiveFailures % 300 === 0) {
-        console.error(`[sim] tick still failing after ${consecutiveFailures} ticks: ${err.message}`);
-      }
-    }
-  }, TICK_MS);
-  timer.unref?.();
+  let inFlight = false;
+
+  const schedule = () => {
+    timer = setInterval(() => {
+      // A remote write can outlive the interval, so never overlap two ticks.
+      if (inFlight) return;
+      inFlight = true;
+      tick()
+        .then(() => {
+          consecutiveFailures = 0;
+          lastMessage = '';
+        })
+        .catch((err) => {
+          // Only log the first occurrence of a given failure, then keep quiet, so a
+          // broken tick cannot bury the rest of the server output.
+          consecutiveFailures += 1;
+          if (err.message !== lastMessage) {
+            lastMessage = err.message;
+            console.error('[sim] tick failed:', err);
+          } else if (consecutiveFailures === 25 || consecutiveFailures % 300 === 0) {
+            console.error(`[sim] tick still failing after ${consecutiveFailures} ticks: ${err.message}`);
+          }
+        })
+        .finally(() => {
+          inFlight = false;
+        });
+    }, TICK_MS);
+    timer.unref?.();
+  };
+
+  schedule();
   console.log(`[sim] running every ${TICK_MS}ms across ${state.size} simulated vehicles`);
 }
 

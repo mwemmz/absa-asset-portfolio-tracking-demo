@@ -14,7 +14,7 @@ const VEHICLE_SELECT = `
 
 vehiclesRouter.get(
   '/',
-  handler((req, res) => {
+  handler(async (req, res) => {
     const status = oneOf(req.query.status, VEHICLE_STATUSES, 'status');
     const deviceStatus = oneOf(req.query.deviceStatus, DEVICE_STATUSES, 'deviceStatus');
     const routeId = req.query.routeId ? String(req.query.routeId) : null;
@@ -42,25 +42,25 @@ vehiclesRouter.get(
     }
 
     const sql = `${VEHICLE_SELECT} ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY v.reg`;
-    const rows = db.prepare(sql).all(params);
+    const rows = await db.prepare(sql).all(params);
     res.json(rows.map(serialiseVehicle));
   }),
 );
 
 vehiclesRouter.get(
   '/:id',
-  handler((req, res) => {
+  handler(async (req, res) => {
     const id = idParam(req.params.id, 'vehicle id');
-    const row = db.prepare(`${VEHICLE_SELECT} WHERE v.id = ?`).get(id);
+    const row = await db.prepare(`${VEHICLE_SELECT} WHERE v.id = ?`).get([id]);
     if (!row) throw notFound(`Vehicle ${id} not found`);
 
     const alertLimit = boundedInt(req.query.alertLimit, { min: 1, max: 100, fallback: 12, label: 'alertLimit' });
-    const alerts = db
+    const alerts = await db
       .prepare(
         `SELECT * FROM alerts WHERE vehicle_id = ?
           ORDER BY created_at DESC LIMIT ?`,
       )
-      .all(id, alertLimit);
+      .all([id, alertLimit]);
 
     // Same camelCase shape as GET /api/alerts so the detail page can render the
     // vehicle summary and its alerts with one set of field names.
@@ -72,12 +72,12 @@ vehiclesRouter.get(
       }),
     );
 
-    const counts = db
+    const counts = await db
       .prepare(
         `SELECT status, COUNT(*) AS n FROM alerts
           WHERE vehicle_id = ? GROUP BY status`,
       )
-      .all(id);
+      .all([id]);
 
     res.json({
       ...serialiseVehicle(row),
@@ -89,16 +89,16 @@ vehiclesRouter.get(
 
 vehiclesRouter.get(
   '/:id/history',
-  handler((req, res) => {
+  handler(async (req, res) => {
     const id = idParam(req.params.id, 'vehicle id');
-    const vehicle = db.prepare('SELECT id, route_id FROM vehicles WHERE id = ?').get(id);
+    const vehicle = await db.prepare('SELECT id, route_id FROM vehicles WHERE id = ?').get([id]);
     if (!vehicle) throw notFound(`Vehicle ${id} not found`);
 
     const hours = boundedInt(req.query.hours, { min: 1, max: 168, fallback: 6, label: 'hours' });
     const limit = boundedInt(req.query.limit, { min: 1, max: 5000, fallback: 1200, label: 'limit' });
     const since = new Date(Date.now() - hours * 3600000).toISOString();
 
-    const rows = db
+    const rows = await db
       .prepare(
         `SELECT lat, lng, ts, speed_kph AS speed, heading, status, deviation_m, geofence_id
            FROM positions
@@ -106,7 +106,7 @@ vehiclesRouter.get(
           ORDER BY ts DESC
           LIMIT ?`,
       )
-      .all(id, since, limit);
+      .all([id, since, limit]);
 
     // Contract order is oldest -> newest so the client can draw straight to the map.
     const points = rows.reverse().map((r) => ({
@@ -126,15 +126,17 @@ vehiclesRouter.get(
 
 vehiclesRouter.get(
   '/:id/route',
-  handler((req, res) => {
+  handler(async (req, res) => {
     const id = idParam(req.params.id, 'vehicle id');
-    const row = db
+    const row = await db
       .prepare('SELECT route_id FROM vehicles WHERE id = ?')
-      .get(id);
+      .get([id]);
     if (!row?.route_id) throw notFound(`Vehicle ${id} has no assigned route`);
-    const route = db
-      .prepare('SELECT id, name, corridor, via, distance_meters, avg_speed_kph, bounds, points FROM routes WHERE id = ?')
-      .get(row.route_id);
+    const route = await db
+      .prepare(
+        'SELECT id, name, corridor, via, distance_meters, avg_speed_kph, bounds, points FROM routes WHERE id = ?',
+      )
+      .get([row.route_id]);
     if (!route) throw notFound('Route not found');
     res.json({
       id: route.id,
@@ -153,8 +155,8 @@ export const geofencesRouter = Router();
 
 geofencesRouter.get(
   '/',
-  handler((req, res) => {
-    const rows = db.prepare('SELECT * FROM geofences ORDER BY id').all();
+  handler(async (_req, res) => {
+    const rows = await db.prepare('SELECT * FROM geofences ORDER BY id').all();
     res.json(
       rows.map((g) => {
         const polygon = JSON.parse(g.polygon);
