@@ -52,43 +52,48 @@ function ResetButton() {
 
 function NavList({ openAlerts, offline, onNavigate }) {
   return (
-    <nav className="flex-1 overflow-y-auto p-2.5">
-      <ul className="space-y-0.5">
+    <nav className="flex-1 overflow-y-auto px-2.5 py-2">
+      <ul className="space-y-1">
         {NAV.map((item) => (
           <li key={item.to}>
-            <NavLink
-              to={item.to}
-              end={item.end}
-              onClick={onNavigate}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-brand-600 text-white'
-                    : 'text-ink-300 hover:bg-ink-800 hover:text-white'
-                }`
-              }
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-                className="h-4 w-4 shrink-0"
-              >
-                <path d={item.icon} />
-              </svg>
-              <span className="flex-1 truncate">{item.label}</span>
-              {item.to === '/alerts' && openAlerts > 0 && (
-                <span className="rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white ring-1 ring-white/30">
-                  {openAlerts}
-                </span>
-              )}
-              {item.to === '/vehicles' && offline > 0 && (
-                <span className="rounded-full bg-ink-700 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-ink-200">
-                  {offline}
+            <NavLink to={item.to} end={item.end} onClick={onNavigate}>
+              {({ isActive }) => (
+                <span
+                  className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                    isActive
+                      ? 'bg-white/[0.08] font-semibold text-white'
+                      : 'font-medium text-ink-300 hover:bg-white/[0.05] hover:text-white'
+                  }`}
+                >
+                  {isActive && (
+                    <span
+                      aria-hidden
+                      className="absolute -left-2.5 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-sm bg-brand-500"
+                    />
+                  )}
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                    className="h-4 w-4 shrink-0"
+                  >
+                    <path d={item.icon} />
+                  </svg>
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {item.to === '/alerts' && openAlerts > 0 && (
+                    <span className="rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white">
+                      {openAlerts}
+                    </span>
+                  )}
+                  {item.to === '/vehicles' && offline > 0 && (
+                    <span className="rounded-full bg-ink-700 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-ink-200">
+                      {offline}
+                    </span>
+                  )}
                 </span>
               )}
             </NavLink>
@@ -101,15 +106,15 @@ function NavList({ openAlerts, offline, onNavigate }) {
 
 function UserPanel({ user, signOut }) {
   return (
-    <div className="space-y-3 border-t border-ink-800 p-3">
-      <div className="rounded-lg bg-ink-800/60 p-3">
-        <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">
+    <div className="space-y-3 border-t border-ink-800/80 p-3">
+      <div className="rounded-lg border border-ink-800 bg-white/[0.03] p-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white ring-1 ring-white/15">
             {(user?.name ?? '?').slice(0, 1)}
           </span>
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-white">{user?.name}</p>
-            <p className="truncate text-[10px] uppercase tracking-wide text-ink-400">
+            <p className="truncate text-[10px] uppercase tracking-label text-ink-400">
               {user?.role}
             </p>
           </div>
@@ -120,7 +125,7 @@ function UserPanel({ user, signOut }) {
         <button
           type="button"
           onClick={signOut}
-          className="btn btn-sm flex-1 border border-ink-700 text-ink-200 hover:bg-ink-800"
+          className="btn btn-sm flex-1 border border-ink-700 bg-white/[0.03] text-ink-200 hover:bg-ink-800"
         >
           Sign out
         </button>
@@ -165,9 +170,9 @@ export function Layout() {
           src="/leftpanel.jpg"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full scale-105 object-cover opacity-30 blur-[2px]"
+          className="absolute inset-0 h-full w-full scale-105 object-cover opacity-25 blur-[1px]"
         />
-        <div aria-hidden="true" className="absolute inset-0 bg-ink-900/65" />
+        <div aria-hidden="true" className="absolute inset-0 bg-ink-900/75" />
         <div className="relative z-10 flex min-h-0 flex-1 flex-col">
           <div className="flex items-center gap-3 border-b border-ink-800/80 px-4 py-4">
             <div className="flex h-11 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1.5 shadow-lg">
@@ -206,9 +211,9 @@ export function Layout() {
               src="/leftpanel.jpg"
               alt=""
               aria-hidden="true"
-              className="absolute inset-0 h-full w-full scale-105 object-cover opacity-30 blur-[2px]"
+              className="absolute inset-0 h-full w-full scale-105 object-cover opacity-25 blur-[1px]"
             />
-            <div aria-hidden="true" className="absolute inset-0 bg-ink-900/65" />
+            <div aria-hidden="true" className="absolute inset-0 bg-ink-900/75" />
             <div className="relative z-10 flex min-h-0 flex-1 flex-col">
               <div className="flex items-center gap-3 border-b border-ink-800/80 px-4 py-3.5">
                 <div className="flex h-10 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1.5 shadow-lg">
@@ -263,7 +268,7 @@ export function Layout() {
                   className="h-9 w-9 rounded-full object-cover shadow-pop ring-2 ring-white/70"
                 />
               ) : (
-                <h1 className="truncate text-sm font-bold leading-tight text-white">
+                <h1 className="truncate text-sm font-semibold tracking-tightish text-white">
                   {pageTitle(location.pathname)}
                 </h1>
               )}
@@ -273,7 +278,7 @@ export function Layout() {
         </div>
 
         {/* desktop header */}
-        <header className="no-print hidden items-center justify-between gap-4 border-b border-ink-800 bg-ink-900 px-6 py-4 lg:flex">
+        <header className="no-print hidden items-center justify-between gap-4 border-b border-ink-800/80 bg-ink-900 px-6 py-3.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] lg:flex">
           <div>
             {isMapPage ? (
               <img
@@ -282,7 +287,7 @@ export function Layout() {
                 className="h-11 w-11 rounded-full object-cover shadow-pop ring-2 ring-white/70"
               />
             ) : (
-              <h1 className="text-base font-bold leading-tight text-white">
+              <h1 className="text-[15px] font-semibold tracking-tightish text-white">
                 {pageTitle(location.pathname)}
               </h1>
             )}

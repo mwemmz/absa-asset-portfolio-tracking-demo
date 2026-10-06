@@ -123,8 +123,8 @@ export default function Alerts() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-ink-900 sm:text-2xl">Alerts</h1>
-          <p className="mt-0.5 text-sm text-ink-500">
+          <h1 className="page-title">Alerts</h1>
+          <p className="page-sub">
             {openCount} open of {summary.data?.byStatus
               ? Object.values(summary.data.byStatus).reduce((s, n) => s + n, 0)
               : list.length}{' '}
@@ -133,7 +133,7 @@ export default function Alerts() {
         </div>
         <div className="flex items-center gap-3">
           {alerts.loading && <Spinner className="h-4 w-4 text-ink-400" />}
-          <span className="text-xs text-ink-400">
+          <span className="text-xs text-ink-500">
             Updated {alerts.lastUpdated ? timeAgo(alerts.lastUpdated, now) : '-'}
           </span>
         </div>
@@ -243,7 +243,7 @@ export default function Alerts() {
                   type="button"
                   onClick={() => setParam('focus', a.id)}
                   className={`block w-full px-3.5 py-3 text-left transition-colors sm:px-5 sm:py-3.5 ${
-                    focused?.id === a.id ? 'bg-brand-50' : 'hover:bg-ink-50'
+                    focused?.id === a.id ? 'bg-brand-50' : 'hover:bg-canvas/60'
                   }`}
                 >
                   <div className="flex items-start gap-3">

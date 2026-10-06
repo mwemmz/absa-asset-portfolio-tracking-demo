@@ -64,29 +64,35 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <div className="relative isolate -mx-3 -mt-3 overflow-hidden px-3 pb-4 pt-3 sm:-mx-4 sm:-mt-4 sm:px-4 sm:pb-5 sm:pt-4 lg:-mx-6 lg:-mt-6 lg:px-6 lg:pb-6 lg:pt-6">
+      <div className="relative isolate -mx-3 -mt-3 overflow-hidden px-3 pb-5 pt-4 sm:-mx-4 sm:-mt-4 sm:px-4 sm:pb-6 sm:pt-4 lg:-mx-6 lg:-mt-6 lg:px-6 lg:pb-7 lg:pt-6">
+        {/* Photo edge is kept sharp and pushed right; the text reads on solid ink. */}
         <img
           src="/header.jpg"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full scale-105 object-cover opacity-60 blur-[3px]"
+          className="absolute inset-0 h-full w-full object-cover object-center opacity-40 sm:object-right"
         />
-        <div aria-hidden="true" className="absolute inset-0 bg-ink-900/60" />
+        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/95 to-ink-950/75" />
+        {/* signature hairline under the command panel */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-brand-500/0 via-brand-500/50 to-brand-500/0"
+        />
 
         <div className="relative z-10 space-y-4 sm:space-y-5">
           <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+              <h1 className="text-xl font-semibold tracking-display text-white sm:text-2xl">
                 Portfolio dashboard
               </h1>
-              <p className="mt-0.5 text-xs leading-snug text-ink-200 sm:text-sm">
+              <p className="mt-1 text-xs leading-snug text-ink-200 sm:text-sm">
                 {formatNumber(data?.total ?? 0)} financed vehicles under monitoring, refreshed every 5
                 seconds from the simulation engine.
               </p>
             </div>
-            <p className="shrink-0 text-[11px] text-ink-200 sm:text-xs">
+            <p className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[11px] text-ink-300 sm:text-xs">
               Last update{' '}
-              <span className="font-medium text-white">
+              <span className="font-semibold text-white">
                 {stats.lastUpdated ? timeAgo(stats.lastUpdated, now) : '-'}
               </span>
             </p>
@@ -99,6 +105,7 @@ export default function Dashboard() {
               value={formatNumber(data?.total)}
               sublabel={`${formatZmw(data?.fleetValueZmw, { compact: true })} financed value`}
               tone="ink"
+              surface="dark"
               gauge={{
                 pct: shareOfFleet(data?.total, (data?.total ?? 0) - (data?.offline ?? 0)),
                 label: 'Available',
@@ -110,6 +117,7 @@ export default function Dashboard() {
               value={formatNumber(data?.active)}
               sublabel="Reporting and moving"
               tone="emerald"
+              surface="dark"
               gauge={{
                 pct: shareOfFleet(data?.total, data?.active),
                 label: 'Moving',
@@ -123,6 +131,7 @@ export default function Dashboard() {
               value={formatNumber(data?.stopped)}
               sublabel="Stationary over threshold"
               tone="amber"
+              surface="dark"
               gauge={{
                 pct: shareOfFleet(data?.total, data?.stopped),
                 label: 'Stopped',
@@ -135,6 +144,7 @@ export default function Dashboard() {
               value={formatNumber(data?.offline)}
               sublabel={`${formatNumber(data?.tamperedDevices ?? 0)} device tampered`}
               tone="orange"
+              surface="dark"
               gauge={{
                 pct: shareOfFleet(data?.total, data?.offline),
                 label: 'Offline',
@@ -147,6 +157,7 @@ export default function Dashboard() {
               value={formatNumber(data?.alertsToday)}
               sublabel={`${formatNumber(data?.openAlerts ?? 0)} still open`}
               tone="brand"
+              surface="dark"
               gauge={{
                 pct:
                   data?.alertsToday > 0 ? ((data?.openAlerts ?? 0) / data.alertsToday) * 100 : 0,
@@ -264,7 +275,7 @@ export default function Dashboard() {
           />
         ) : (
           <table className="w-full min-w-[34rem]">
-            <thead className="border-b border-ink-200 bg-ink-50">
+            <thead className="border-b border-ink-200 bg-canvas/50">
               <tr>
                 <th className="th">Registration</th>
                 <th className="th hidden md:table-cell">Driver</th>
@@ -278,7 +289,7 @@ export default function Dashboard() {
             </thead>
             <tbody className="divide-y divide-ink-100">
               {attention.map((v) => (
-                <tr key={v.id} className="transition-colors hover:bg-ink-50">
+                <tr key={v.id} className="transition-colors hover:bg-canvas/60">
                   <td className="td">
                     <Link to={`/vehicles/${v.id}`} className="link font-semibold">
                       {v.reg}
@@ -343,7 +354,7 @@ function AlertRow({ alert, now }) {
   return (
     <Link
       to={`/alerts?focus=${alert.id}`}
-      className="flex items-center gap-3 px-3 py-3 transition-colors hover:bg-ink-50 sm:gap-4 sm:px-5"
+      className="flex items-center gap-3 px-3 py-3 transition-colors hover:bg-canvas/60 sm:gap-4 sm:px-5"
     >
       <span
         className={`h-8 w-1 shrink-0 rounded-full ${

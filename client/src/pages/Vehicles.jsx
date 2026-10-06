@@ -83,8 +83,8 @@ export default function Vehicles() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-ink-900 sm:text-2xl">Vehicles</h1>
-          <p className="mt-0.5 text-sm text-ink-500">
+          <h1 className="page-title">Vehicles</h1>
+          <p className="page-sub">
             {list.length} financed vehicle{list.length === 1 ? '' : 's'} in the monitored portfolio.
           </p>
         </div>
@@ -232,7 +232,7 @@ export default function Vehicles() {
 
             <div className="hidden sm:block">
           <table className="w-full min-w-[64rem]">
-            <thead className="border-b border-ink-200 bg-ink-50">
+            <thead className="border-b border-ink-200 bg-canvas/50">
               <tr>
                 <th className="th">Registration</th>
                 <th className="th">Driver</th>
@@ -250,7 +250,7 @@ export default function Vehicles() {
               {list.map((v) => (
                 <tr
                   key={v.id}
-                  className={`transition-colors hover:bg-ink-50 ${
+                  className={`transition-colors hover:bg-canvas/60 ${
                     v.deviceStatus === 'tampered' ? 'bg-brand-50/40' : ''
                   }`}
                 >

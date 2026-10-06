@@ -33,8 +33,8 @@ export default function Report() {
       {/* ------------------------------------------------------------ toolbar */}
       <div className="no-print flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-ink-900 sm:text-2xl">Monthly report</h1>
-          <p className="mt-0.5 text-sm text-ink-500">
+          <h1 className="page-title">Monthly report</h1>
+          <p className="page-sub">
             Fleet performance and incident statistics, generated from the simulated fleet.
           </p>
         </div>
@@ -242,7 +242,7 @@ export default function Report() {
             ) : (
               <div className="table-wrap">
                 <table className="w-full min-w-[42rem]">
-                  <thead className="border-b border-ink-200 bg-ink-50">
+                  <thead className="border-b border-ink-200 bg-canvas/50">
                     <tr>
                       <th className="th">Type</th>
                       <th className="th text-right">Count</th>
@@ -299,7 +299,7 @@ export default function Report() {
             ) : (
               <div className="table-wrap">
                 <table className="w-full min-w-[52rem]">
-                  <thead className="border-b border-ink-200 bg-ink-50">
+                  <thead className="border-b border-ink-200 bg-canvas/50">
                     <tr>
                       <th className="th">Vehicle</th>
                       <th className="th">Driver</th>

@@ -54,12 +54,21 @@
   }
 
   .card-title {
-    @apply text-xs font-semibold uppercase tracking-wide text-ink-600 sm:text-sm;
+    @apply text-[13px] font-semibold tracking-tightish text-ink-700 sm:text-sm;
+  }
+
+  /* Page headings share one scale so every route opens the same way. */
+  .page-title {
+    @apply text-xl font-semibold tracking-display text-ink-900 sm:text-2xl;
+  }
+  .page-sub {
+    @apply mt-1 text-sm text-ink-600;
   }
 
   .btn {
     @apply inline-flex select-none items-center justify-center gap-2 rounded-lg px-3.5 py-2
            text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 2px rgb(16 24 40 / 0.1);
     transition-property: background-color, border-color, color, box-shadow, transform;
     transition-duration: 150ms;
     transition-timing-function: var(--ease-out);
@@ -69,15 +78,19 @@
   }
   .btn-primary {
     @apply btn bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 1px 2px rgb(16 24 40 / 0.22);
   }
   .btn-secondary {
-    @apply btn border border-ink-200 bg-white text-ink-700 hover:bg-ink-50;
+    @apply btn border border-ink-200 bg-white text-ink-700 hover:border-ink-300 hover:bg-ink-50;
+    box-shadow: 0 1px 2px rgb(16 24 40 / 0.05);
   }
   .btn-ghost {
     @apply btn text-ink-600 hover:bg-ink-100;
+    box-shadow: none;
   }
   .btn-danger {
     @apply btn bg-brand-600 text-white hover:bg-brand-700;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 1px 2px rgb(16 24 40 / 0.22);
   }
   .btn-sm {
     @apply px-2.5 py-1.5 text-xs;
@@ -88,10 +101,11 @@
            placeholder:text-ink-400 focus:border-brand-500 focus:outline-none
            focus:ring-1 focus:ring-brand-500;
     caret-color: theme('colors.brand.600');
+    box-shadow: inset 0 1px 2px rgb(16 24 40 / 0.04);
   }
 
   .label {
-    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-500;
+    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-label text-ink-500;
   }
 
   .table-wrap {
@@ -101,15 +115,15 @@
   }
 
   .th {
-    @apply whitespace-nowrap px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide
-           text-ink-500 sm:px-4 sm:py-3 sm:text-xs;
+    @apply whitespace-nowrap px-3 py-2.5 text-left text-[11px] font-semibold uppercase
+           tracking-label text-ink-600 sm:px-4 sm:py-3;
   }
   .td {
     @apply whitespace-nowrap px-3 py-2.5 text-sm text-ink-700 sm:px-4 sm:py-3;
   }
 
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+    @apply inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold;
   }
 
   .link {

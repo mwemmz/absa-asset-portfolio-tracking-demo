@@ -257,7 +257,7 @@ export default function LiveMap() {
                     type="button"
                     onClick={() => setParam('vehicle', v.id)}
                     className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                      v.id === selectedId ? 'bg-brand-50' : 'hover:bg-ink-50'
+                      v.id === selectedId ? 'bg-brand-50' : 'hover:bg-canvas/60'
                     }`}
                   >
                     <span
@@ -339,7 +339,7 @@ export default function LiveMap() {
                     key={a.id}
                     type="button"
                     onClick={() => navigate(`/alerts?focus=${a.id}`)}
-                    className="block w-full px-4 py-2.5 text-left transition-colors hover:bg-ink-50"
+                    className="block w-full px-4 py-2.5 text-left transition-colors hover:bg-canvas/60"
                   >
                     <p className="truncate text-xs font-semibold text-ink-800">{a.title}</p>
                     <p className="mt-0.5 truncate text-[11px] text-ink-500">

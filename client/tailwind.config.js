@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Workspace canvas: a cool graphite that lets white cards read as surfaces.
-        canvas: '#e5e9ee',
+        // Workspace canvas: a deep cool slate that lets white cards read as surfaces.
+        canvas: '#dee3ea',
         // Lusaka 1 palette: red, white, dark grey.
         brand: {
           50: '#fef2f2',
@@ -40,8 +40,13 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'sans-serif'],
+        sans: ['Inter Variable', 'Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+      },
+      letterSpacing: {
+        label: '0.08em',
+        tightish: '-0.01em',
+        display: '-0.02em',
       },
       boxShadow: {
         card: '0 1px 2px 0 rgb(16 24 40 / 0.05), 0 3px 8px -4px rgb(16 24 40 / 0.12), 0 16px 32px -22px rgb(16 24 40 / 0.35)',

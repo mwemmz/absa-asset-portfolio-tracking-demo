@@ -249,7 +249,7 @@ export default function VehicleDetail() {
                   key={a.id}
                   type="button"
                   onClick={() => navigate(`/alerts?focus=${a.id}`)}
-                  className="block w-full px-5 py-3 text-left transition-colors hover:bg-ink-50"
+                  className="block w-full px-5 py-3 text-left transition-colors hover:bg-canvas/60"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <span className="min-w-0 flex-1">

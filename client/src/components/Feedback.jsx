@@ -29,7 +29,7 @@ export function SkeletonRows({ rows = 5, cols = 4 }) {
           {Array.from({ length: cols }, (_, c) => (
             <div
               key={c}
-              className="h-4 animate-pulse rounded bg-ink-100"
+              className="h-4 animate-pulse rounded bg-ink-200/60"
               style={{ width: `${Math.max(12, 30 - c * 4)}%` }}
             />
           ))}

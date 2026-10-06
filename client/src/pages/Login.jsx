@@ -110,8 +110,13 @@ export default function Login() {
       {/* ---------------------------------------------------------- form side */}
       <div className="flex flex-1 items-center justify-center bg-canvas px-4 py-10 sm:px-8">
         <div className="w-full max-w-md">
-          <div className="card p-6 sm:p-7">
-            <h2 className="text-xl font-bold text-ink-900">Sign in</h2>
+          <div className="card relative overflow-hidden p-6 sm:p-8">
+            <div
+              aria-hidden
+              className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-600/0 via-brand-600 to-brand-600/0"
+            />
+            <h2 className="mt-2 text-xl font-semibold tracking-display text-ink-900">Sign in</h2>
+            <p className="mt-1 text-sm text-ink-500">Use the demo admin account or the monitoring viewer.</p>
 
             <form onSubmit={submit} className="mt-6 space-y-4">
               <div>

@@ -5,7 +5,7 @@ const GAUGE_C = 2 * Math.PI * GAUGE_R;
 const STAGGER_MS = 50;
 const SETTLE_MS = 700;
 
-function Gauge({ pct, label, arcClass, index = 0 }) {
+function Gauge({ pct, label, arcClass, index = 0, theme = 'light' }) {
   // The arc lands on its value after the first paint, so the fill reads as motion.
   const [started, setStarted] = useState(false);
   const [settled, setSettled] = useState(false);
@@ -22,22 +22,19 @@ function Gauge({ pct, label, arcClass, index = 0 }) {
   const target = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
   const shown = started ? target : 0;
   const offset = GAUGE_C * (1 - shown / 100);
+  const onDark = theme === 'dark';
 
   return (
     <div className="flex flex-col items-center gap-1">
       <div className="relative">
-        <svg
-          viewBox="0 0 56 56"
-          aria-hidden="true"
-          className={`h-10 w-10 sm:h-14 sm:w-14 ${arcClass}`}
-        >
+        <svg viewBox="0 0 56 56" aria-hidden="true" className={`h-10 w-10 sm:h-14 sm:w-14 ${arcClass}`}>
           <circle
             cx="28"
             cy="28"
             r={GAUGE_R}
             fill="none"
             strokeWidth="5"
-            className="stroke-ink-200/70"
+            className={onDark ? 'stroke-white/15' : 'stroke-ink-200/70'}
           />
           <circle
             cx="28"
@@ -54,16 +51,66 @@ function Gauge({ pct, label, arcClass, index = 0 }) {
             style={{ transitionDelay: settled ? '0ms' : `${index * STAGGER_MS}ms` }}
           />
         </svg>
-        <span className="absolute inset-0 grid place-items-center text-[10px] font-bold tabular-nums text-ink-700 sm:text-xs">
+        <span
+          className={`absolute inset-0 grid place-items-center text-[10px] font-bold tabular-nums sm:text-xs ${
+            onDark ? 'text-white' : 'text-ink-700'
+          }`}
+        >
           {Math.round(shown)}%
         </span>
       </div>
-      <span className="text-[9px] font-semibold uppercase leading-none tracking-[0.06em] text-ink-500 sm:text-[10px]">
+      <span
+        className={`text-[9px] font-semibold uppercase leading-none tracking-[0.06em] sm:text-[10px] ${
+          onDark ? 'text-ink-400' : 'text-ink-500'
+        }`}
+      >
         {label}
       </span>
     </div>
   );
 }
+
+const SURFACES = {
+  light: {
+    tile: 'card',
+    label: 'text-[11px] font-semibold uppercase leading-tight tracking-label text-ink-500 sm:text-xs',
+    value: '',
+    sub: 'mt-1.5 line-clamp-2 text-[11px] leading-snug text-ink-500 sm:text-xs',
+    footerBorder: 'border-ink-100',
+    activeOffset: 'ring-offset-white',
+    tones: {
+      ink: { icon: 'bg-ink-100 text-ink-600', value: 'text-ink-900', arc: 'text-ink-700' },
+      brand: { icon: 'bg-brand-50 text-brand-600', value: 'text-brand-700', arc: 'text-brand-600' },
+      emerald: {
+        icon: 'bg-emerald-50 text-emerald-600',
+        value: 'text-emerald-700',
+        arc: 'text-emerald-600',
+      },
+      amber: { icon: 'bg-amber-50 text-amber-600', value: 'text-amber-700', arc: 'text-amber-500' },
+      orange: {
+        icon: 'bg-orange-50 text-orange-600',
+        value: 'text-orange-700',
+        arc: 'text-orange-500',
+      },
+    },
+  },
+  // Instrument tiles inside the dark hero panel.
+  dark: {
+    tile: 'rounded-xl border border-white/10 bg-white/[0.06]',
+    label: 'text-[11px] font-semibold uppercase leading-tight tracking-label text-ink-300 sm:text-xs',
+    value: 'text-white',
+    sub: 'mt-1.5 line-clamp-2 text-[11px] leading-snug text-ink-400 sm:text-xs',
+    footerBorder: 'border-white/10',
+    activeOffset: 'ring-offset-ink-950',
+    tones: {
+      ink: { icon: '', value: 'text-white', arc: 'text-ink-200' },
+      brand: { icon: '', value: 'text-white', arc: 'text-brand-400' },
+      emerald: { icon: '', value: 'text-white', arc: 'text-emerald-400' },
+      amber: { icon: '', value: 'text-white', arc: 'text-amber-400' },
+      orange: { icon: '', value: 'text-white', arc: 'text-orange-400' },
+    },
+  },
+};
 
 export function StatCard({
   label,
@@ -75,23 +122,10 @@ export function StatCard({
   active = false,
   footer,
   gauge,
+  surface = 'light',
 }) {
-  const tones = {
-    ink: { icon: 'bg-ink-100 text-ink-600', value: 'text-ink-900', arc: 'text-ink-700' },
-    brand: { icon: 'bg-brand-50 text-brand-600', value: 'text-brand-700', arc: 'text-brand-600' },
-    emerald: {
-      icon: 'bg-emerald-50 text-emerald-600',
-      value: 'text-emerald-700',
-      arc: 'text-emerald-600',
-    },
-    amber: { icon: 'bg-amber-50 text-amber-600', value: 'text-amber-700', arc: 'text-amber-500' },
-    orange: {
-      icon: 'bg-orange-50 text-orange-600',
-      value: 'text-orange-700',
-      arc: 'text-orange-500',
-    },
-  };
-  const t = tones[tone] ?? tones.ink;
+  const s = SURFACES[surface] ?? SURFACES.light;
+  const t = s.tones[tone] ?? s.tones.ink;
   const Tag = onClick ? 'button' : 'div';
 
   return (
@@ -99,32 +133,26 @@ export function StatCard({
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       aria-pressed={onClick ? active : undefined}
-      className={`card relative flex h-full w-full flex-col items-start p-3.5 text-left sm:p-4 xl:p-5 ${
+      className={`relative flex h-full w-full flex-col items-start p-3.5 text-left sm:p-4 xl:p-5 ${s.tile} ${
         onClick ? 'card-lift' : ''
-      } ${active ? 'ring-2 ring-brand-400 ring-offset-2 ring-offset-ink-900' : ''}`}
+      } ${active ? `ring-2 ring-brand-400 ring-offset-2 ${s.activeOffset}` : ''}`}
     >
       {gauge && (
         <div className="absolute right-3 top-3 sm:right-4 sm:top-4">
-          <Gauge pct={gauge.pct} label={gauge.label} arcClass={t.arc} index={gauge.index} />
+          <Gauge pct={gauge.pct} label={gauge.label} arcClass={t.arc} index={gauge.index} theme={surface} />
         </div>
       )}
 
       <div className={`w-full ${gauge ? 'pr-12 sm:pr-16' : ''}`}>
-        <p className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-ink-500 sm:text-xs">
-          {label}
-        </p>
+        <p className={s.label}>{label}</p>
         <p
-          className={`mt-1.5 text-2xl font-bold leading-none tabular-nums tracking-tight sm:mt-2.5 sm:text-[1.75rem] xl:text-3xl ${t.value}`}
+          className={`mt-1.5 text-[1.375rem] font-bold leading-none tabular-nums tracking-tight sm:mt-2.5 sm:text-[1.75rem] xl:text-3xl ${t.value} ${s.value}`}
         >
           {value}
         </p>
-        {sublabel && (
-          <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-ink-500 sm:text-xs">
-            {sublabel}
-          </p>
-        )}
+        {sublabel && <p className={s.sub}>{sublabel}</p>}
       </div>
-      {footer && <div className="mt-auto w-full border-t border-ink-100 pt-2.5 sm:pt-3">{footer}</div>}
+      {footer && <div className={`mt-auto w-full border-t pt-2.5 sm:pt-3 ${s.footerBorder}`}>{footer}</div>}
     </Tag>
   );
 }
