@@ -108,14 +108,8 @@ export default function Login() {
       </div>
 
       {/* ---------------------------------------------------------- form side */}
-      <div className="relative isolate flex flex-1 items-center justify-center overflow-hidden bg-ink-900 px-4 py-10 sm:px-8">
-        <img
-          src="/lsk1.jpg"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full scale-105 object-cover blur-[1px]"
-        />
-        <div className="relative z-10 w-full max-w-md">
+      <div className="flex flex-1 items-center justify-center bg-ink-100 px-4 py-10 sm:px-8">
+        <div className="w-full max-w-md">
           <div className="card p-6 sm:p-7">
             <h2 className="text-xl font-bold text-ink-900">Sign in</h2>
 
