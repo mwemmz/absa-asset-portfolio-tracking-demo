@@ -100,7 +100,7 @@ export default function Login() {
 
         <div className="relative z-10 mt-10">
           <p className="max-w-md text-xs leading-relaxed text-ink-400">
-            Vehicle positions, drivers and incidents on this dashboard are randomly simulated for
+            Vehicle positions, drivers and incidents on this dashboard are randomly generated
             for illustration only. This is not a live fleet-tracking system and contains no real
             customer data.
           </p>
