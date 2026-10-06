@@ -104,7 +104,7 @@ export default function Login() {
         <div className="relative mt-10">
           <NoticeBadge variant="hero" />
           <p className="mt-3 max-w-md text-xs leading-relaxed text-ink-400">
-            Vehicle positions, drivers and incidents on this dashboard are randomly simulated for
+            Vehicle positions, drivers and incidents on this dashboard are randomly generated
             for illustration only. This is not a live fleet-tracking system and contains no real
             customer data.
           </p>

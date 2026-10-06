@@ -113,7 +113,7 @@ export default function Report() {
               <div className="text-right">
                 <NoticeBadge />
                 <p className="mt-2 max-w-[16rem] text-[11px] leading-relaxed text-ink-500">
-                  Generated {formatDate(new Date().toISOString())} from simulated fleet data for
+                  Generated {formatDate(new Date().toISOString())} from simulated fleet data,
                   for illustration only.
                 </p>
               </div>
