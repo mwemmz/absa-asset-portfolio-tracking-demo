@@ -108,7 +108,7 @@ export default function Login() {
       </div>
 
       {/* ---------------------------------------------------------- form side */}
-      <div className="flex flex-1 items-center justify-center bg-ink-100 px-4 py-10 sm:px-8">
+      <div className="flex flex-1 items-center justify-center bg-canvas px-4 py-10 sm:px-8">
         <div className="w-full max-w-md">
           <div className="card p-6 sm:p-7">
             <h2 className="text-xl font-bold text-ink-900">Sign in</h2>
