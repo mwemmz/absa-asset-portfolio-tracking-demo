@@ -3,8 +3,6 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { usePolling } from '../lib/usePolling.js';
-import { NOTICE_LABEL } from '../lib/constants.js';
-import NoticeBadge from './NoticeBadge.jsx';
 import { Spinner } from './Feedback.jsx';
 
 const NAV = [
@@ -136,6 +134,7 @@ export function Layout() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const { data: stats } = usePolling(() => api.stats(), { intervalMs: 5000 });
+  const isMapPage = location.pathname === '/map';
 
   const openAlerts = stats?.openAlerts ?? 0;
   const offline = stats?.offline ?? 0;
@@ -161,26 +160,36 @@ export function Layout() {
   return (
     <div className="flex min-h-screen flex-col bg-ink-50 lg:flex-row">
       {/* ------------------------------------------------------ desktop sidebar */}
-      <aside className="no-print hidden shrink-0 flex-col bg-ink-900 text-ink-100 lg:flex lg:h-screen lg:w-60 lg:sticky lg:top-0 xl:w-64">
-        <div className="flex items-center gap-2.5 border-b border-ink-800 px-4 py-4">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-sm font-black text-white">
-            L
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold leading-tight text-white">Lusaka 1</p>
-            <p className="truncate text-[11px] leading-tight text-ink-400">Asset Portfolio Tracking</p>
+      <aside className="no-print relative isolate hidden shrink-0 flex-col overflow-hidden bg-ink-900 text-ink-100 lg:flex lg:h-screen lg:w-60 lg:sticky lg:top-0 xl:w-64">
+        <img
+          src="/lsk1.jpg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full scale-105 object-cover opacity-30 blur-[2px]"
+        />
+        <div aria-hidden="true" className="absolute inset-0 bg-ink-900/65" />
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+          <div className="flex items-center gap-3 border-b border-ink-800/80 px-4 py-4">
+            <div className="flex h-11 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1.5 shadow-lg">
+              <img src="/logo1.jpg" alt="Lusaka" className="h-full w-full object-contain" />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-lg font-bold italic leading-tight tracking-tight text-blue-400">Lusaka</p>
+              <p className="truncate text-[9px] font-semibold uppercase leading-tight tracking-[0.16em] text-white">
+                One Innovation
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="border-b border-ink-800 px-3 py-3">
-          <NoticeBadge className="w-full justify-center" />
-          <p className="mt-2 text-center text-[10px] leading-tight text-ink-500">
-            Zambia &middot; financed vehicles
-          </p>
-        </div>
+          <div className="border-b border-ink-800/80 px-3 py-3">
+            <p className="text-center text-[10px] leading-tight text-ink-300">
+              Zambia &middot; financed vehicles
+            </p>
+          </div>
 
-        <NavList openAlerts={openAlerts} offline={offline} />
-        <UserPanel user={user} signOut={signOut} />
+          <NavList openAlerts={openAlerts} offline={offline} />
+          <UserPanel user={user} signOut={signOut} />
+        </div>
       </aside>
 
       {/* ------------------------------------------------------- mobile drawer */}
@@ -192,85 +201,114 @@ export function Layout() {
             onClick={() => setMenuOpen(false)}
             className="absolute inset-0 h-full w-full cursor-default bg-ink-900/60 backdrop-blur-[2px]"
           />
-          <div className="absolute inset-y-0 left-0 flex w-[17rem] max-w-[85vw] flex-col bg-ink-900 text-ink-100 shadow-2xl">
-            <div className="flex items-center gap-2.5 border-b border-ink-800 px-4 py-3.5">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-sm font-black text-white">
-                L
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold leading-tight text-white">Lusaka 1</p>
-                <p className="truncate text-[11px] leading-tight text-ink-400">Asset Portfolio Tracking</p>
+          <div className="absolute inset-y-0 left-0 isolate flex w-[17rem] max-w-[85vw] flex-col overflow-hidden bg-ink-900 text-ink-100 shadow-2xl">
+            <img
+              src="/lsk1.jpg"
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full scale-105 object-cover opacity-30 blur-[2px]"
+            />
+            <div aria-hidden="true" className="absolute inset-0 bg-ink-900/65" />
+            <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+              <div className="flex items-center gap-3 border-b border-ink-800/80 px-4 py-3.5">
+                <div className="flex h-10 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1.5 shadow-lg">
+                  <img src="/logo1.jpg" alt="Lusaka" className="h-full w-full object-contain" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-lg font-bold italic leading-tight tracking-tight text-blue-400">Lusaka</p>
+                  <p className="truncate text-[9px] font-semibold uppercase leading-tight tracking-[0.16em] text-white">
+                    One Innovation
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close navigation"
+                  onClick={() => setMenuOpen(false)}
+                  className="btn btn-sm px-2 text-ink-300 hover:bg-ink-800"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-4 w-4" aria-hidden>
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
               </div>
-              <button
-                type="button"
-                aria-label="Close navigation"
-                onClick={() => setMenuOpen(false)}
-                className="btn btn-sm px-2 text-ink-300 hover:bg-ink-800"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-4 w-4" aria-hidden>
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
-              </button>
-            </div>
 
-            <div className="border-b border-ink-800 px-3 py-3">
-              <NoticeBadge className="w-full justify-center" />
+              <NavList openAlerts={openAlerts} offline={offline} onNavigate={() => setMenuOpen(false)} />
+              <UserPanel user={user} signOut={signOut} />
             </div>
-
-            <NavList openAlerts={openAlerts} offline={offline} onNavigate={() => setMenuOpen(false)} />
-            <UserPanel user={user} signOut={signOut} />
           </div>
         </div>
       )}
 
       {/* ---------------------------------------------------------- content */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <NoticeBadge variant="banner" className="no-print" />
-
         {/* mobile top bar */}
-        <div className="no-print sticky top-0 z-30 flex items-center gap-3 border-b border-ink-200 bg-white px-3 py-2.5 lg:hidden">
-          <button
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            aria-label="Open navigation"
-            aria-expanded={menuOpen}
-            className="btn btn-sm -ml-1 px-2 text-ink-700 hover:bg-ink-100"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-5 w-5" aria-hidden>
-              <path d="M4 7h16M4 12h16M4 17h16" />
-            </svg>
-          </button>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-sm font-bold leading-tight text-ink-900">
-              {pageTitle(location.pathname)}
-            </h1>
-            <p className="truncate text-[10px] leading-tight text-ink-500">
-              {NOTICE_LABEL} &middot; simulated data
-            </p>
+        <div className="no-print sticky top-0 z-30 overflow-hidden border-b border-ink-800 bg-ink-900 lg:hidden">
+          <img
+            src="/header.jpg"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-105 object-cover opacity-60 blur-[2px]"
+          />
+          <div aria-hidden="true" className="absolute inset-0 bg-ink-900/45" />
+          <div className="relative z-10 flex items-center gap-3 px-3 py-2.5">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open navigation"
+              aria-expanded={menuOpen}
+              className="btn btn-sm -ml-1 px-2 text-white hover:bg-white/15"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-5 w-5" aria-hidden>
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            </button>
+            <div className="min-w-0 flex-1">
+              {isMapPage ? (
+                <img
+                  src="/location.jpg"
+                  alt="Live map"
+                  className="h-9 w-9 rounded-full object-cover shadow-pop ring-2 ring-white/70"
+                />
+              ) : (
+                <h1 className="truncate text-sm font-bold leading-tight text-white">
+                  {pageTitle(location.pathname)}
+                </h1>
+              )}
+            </div>
+            <LivePill stats={stats} />
           </div>
-          <LivePill stats={stats} />
         </div>
 
         {/* desktop header */}
-        <header className="no-print hidden items-center justify-between gap-4 border-b border-ink-200 bg-white px-6 py-3 lg:flex">
-          <div>
-            <h1 className="text-base font-bold leading-tight text-ink-900">
-              {pageTitle(location.pathname)}
-            </h1>
-            <p className="text-xs text-ink-500">{NOTICE_LABEL}</p>
+        <header className="no-print relative hidden items-center justify-between gap-4 overflow-hidden border-b border-ink-800 bg-ink-900 px-6 py-4 lg:flex">
+          <img
+            src="/header.jpg"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-105 object-cover opacity-60 blur-[2px]"
+          />
+          <div aria-hidden="true" className="absolute inset-0 bg-ink-900/45" />
+          <div className="relative z-10">
+            {isMapPage ? (
+              <img
+                src="/location.jpg"
+                alt="Live map"
+                className="h-11 w-11 rounded-full object-cover shadow-pop ring-2 ring-white/70"
+              />
+            ) : (
+              <h1 className="text-base font-bold leading-tight text-white">
+                {pageTitle(location.pathname)}
+              </h1>
+            )}
           </div>
-          <LiveIndicator stats={stats} />
+          <div className="relative z-10">
+            <LiveIndicator stats={stats} />
+          </div>
         </header>
 
         <main className="min-w-0 flex-1 p-3 sm:p-4 lg:p-6">
           <Outlet />
         </main>
-
-        <footer className="no-print border-t border-ink-200 bg-white px-4 py-3 text-[11px] leading-relaxed text-ink-500 sm:px-6">
-          <strong className="font-semibold text-ink-700">Simulated data.</strong> All vehicles,
-          drivers, positions and incidents on this dashboard are generated for illustration. Not a live
-          tracking platform. No real customer data is shown.
-        </footer>
       </div>
     </div>
   );

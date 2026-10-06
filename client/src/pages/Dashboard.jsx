@@ -4,7 +4,7 @@ import { api } from '../lib/api.js';
 import { usePolling, useTicker } from '../lib/usePolling.js';
 import { ALERT_TYPE, SEVERITY, VEHICLE_STATUS } from '../lib/constants.js';
 import { formatNumber, formatPct, formatSpeed, formatZmw, timeAgo } from '../lib/format.js';
-import { Card, Icon, StatCard } from '../components/StatCard.jsx';
+import { Card, StatCard } from '../components/StatCard.jsx';
 import { AlertStatusPill, DevicePill, SeverityPill, StatusPill } from '../components/Badges.jsx';
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/Feedback.jsx';
 
@@ -40,71 +40,78 @@ export default function Dashboard() {
   }, [byType.data]);
 
   if (stats.error) {
-    return <ErrorBanner error={stats.error} onRetry={stats.refresh} className="mb-4" />;
+    return <ErrorBanner error={stats.error} onRetry={stats.refresh} className="mb-4" showIcon={false} />;
   }
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-ink-900 sm:text-2xl">
-            Portfolio dashboard
-          </h1>
-          <p className="mt-0.5 text-xs leading-snug text-ink-500 sm:text-sm">
-            {formatNumber(data?.total ?? 0)} financed vehicles under monitoring, refreshed every 5
-            seconds from the simulation engine.
-          </p>
-        </div>
-        <p className="shrink-0 text-[11px] text-ink-400 sm:text-xs">
-          Last update{' '}
-          <span className="font-medium text-ink-600">
-            {stats.lastUpdated ? timeAgo(stats.lastUpdated, now) : '-'}
-          </span>
-        </p>
-      </div>
+      <div className="relative isolate -mx-3 -mt-3 overflow-hidden px-3 pb-4 pt-3 sm:-mx-4 sm:-mt-4 sm:px-4 sm:pb-5 sm:pt-4 lg:-mx-6 lg:-mt-6 lg:px-6 lg:pb-6 lg:pt-6">
+        <img
+          src="/header.jpg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full scale-105 object-cover opacity-60 blur-[3px]"
+        />
+        <div aria-hidden="true" className="absolute inset-0 bg-ink-900/60" />
 
-      {/* ------------------------------------------------------- stat cards */}
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-5">
-        <StatCard
-          label="Total vehicles"
-          value={formatNumber(data?.total)}
-          sublabel={`${formatZmw(data?.fleetValueZmw, { compact: true })} financed value`}
-          tone="ink"
-          icon={<Icon name="truck" />}
-        />
-        <StatCard
-          label="Active"
-          value={formatNumber(data?.active)}
-          sublabel="Reporting and moving"
-          tone="emerald"
-          icon={<Icon name="play" filled />}
-          onClick={() => navigate('/vehicles?status=moving')}
-          active={false}
-        />
-        <StatCard
-          label="Stopped"
-          value={formatNumber(data?.stopped)}
-          sublabel="Stationary over threshold"
-          tone="amber"
-          icon={<Icon name="pause" filled />}
-          onClick={() => navigate('/vehicles?status=stopped')}
-        />
-        <StatCard
-          label="Offline"
-          value={formatNumber(data?.offline)}
-          sublabel={`${formatNumber(data?.tamperedDevices ?? 0)} device tampered`}
-          tone="orange"
-          icon={<Icon name="plug" />}
-          onClick={() => navigate('/vehicles?status=offline')}
-        />
-        <StatCard
-          label="Alerts today"
-          value={formatNumber(data?.alertsToday)}
-          sublabel={`${formatNumber(data?.openAlerts ?? 0)} still open`}
-          tone="brand"
-          icon={<Icon name="bell" />}
-          onClick={() => navigate('/alerts')}
-        />
+        <div className="relative z-10 space-y-4 sm:space-y-5">
+          <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+                Portfolio dashboard
+              </h1>
+              <p className="mt-0.5 text-xs leading-snug text-ink-200 sm:text-sm">
+                {formatNumber(data?.total ?? 0)} financed vehicles under monitoring, refreshed every 5
+                seconds from the simulation engine.
+              </p>
+            </div>
+            <p className="shrink-0 text-[11px] text-ink-200 sm:text-xs">
+              Last update{' '}
+              <span className="font-medium text-white">
+                {stats.lastUpdated ? timeAgo(stats.lastUpdated, now) : '-'}
+              </span>
+            </p>
+          </div>
+
+          {/* ------------------------------------------------------- stat cards */}
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-5">
+            <StatCard
+              label="Total vehicles"
+              value={formatNumber(data?.total)}
+              sublabel={`${formatZmw(data?.fleetValueZmw, { compact: true })} financed value`}
+              tone="ink"
+            />
+            <StatCard
+              label="Active"
+              value={formatNumber(data?.active)}
+              sublabel="Reporting and moving"
+              tone="emerald"
+              onClick={() => navigate('/vehicles?status=moving')}
+              active={false}
+            />
+            <StatCard
+              label="Stopped"
+              value={formatNumber(data?.stopped)}
+              sublabel="Stationary over threshold"
+              tone="amber"
+              onClick={() => navigate('/vehicles?status=stopped')}
+            />
+            <StatCard
+              label="Offline"
+              value={formatNumber(data?.offline)}
+              sublabel={`${formatNumber(data?.tamperedDevices ?? 0)} device tampered`}
+              tone="orange"
+              onClick={() => navigate('/vehicles?status=offline')}
+            />
+            <StatCard
+              label="Alerts today"
+              value={formatNumber(data?.alertsToday)}
+              sublabel={`${formatNumber(data?.openAlerts ?? 0)} still open`}
+              tone="brand"
+              onClick={() => navigate('/alerts')}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-3">
@@ -115,13 +122,6 @@ export default function Dashboard() {
           action={
             <Link to="/alerts" className="btn-ghost btn-sm">
               View all
-              <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden className="h-3.5 w-3.5">
-                <path
-                  fillRule="evenodd"
-                  d="M7.2 4.3a1 1 0 011.4 0l5 5a1 1 0 010 1.4l-5 5a1 1 0 11-1.4-1.4L11.6 10 7.2 5.7a1 1 0 010-1.4z"
-                  clipRule="evenodd"
-                />
-              </svg>
             </Link>
           }
           bodyClassName="divide-y divide-ink-100"
@@ -132,7 +132,7 @@ export default function Dashboard() {
             <EmptyState
               title="No alerts yet"
               description="The simulation engine raises incidents automatically. Nothing has fired in the last few minutes."
-              icon="check"
+              showIcon={false}
             />
           ) : (
             alerts.data.map((a) => <AlertRow key={a.id} alert={a} now={now} />)
@@ -213,7 +213,7 @@ export default function Dashboard() {
           <EmptyState
             title="Every vehicle is moving"
             description="Nothing is stopped, offline or tampered at the moment."
-            icon="check"
+            showIcon={false}
           />
         ) : (
           <table className="w-full min-w-[34rem]">
@@ -240,7 +240,7 @@ export default function Dashboard() {
                   </td>
                   <td className="td hidden md:table-cell">{v.driver}</td>
                   <td className="td">
-                    <StatusPill status={v.status} />
+                    <StatusPill status={v.status} showDot={false} />
                   </td>
                   <td className="td">
                     <DevicePill status={v.deviceStatus} />
@@ -312,9 +312,9 @@ function AlertRow({ alert, now }) {
         </div>
         <p className="mt-0.5 truncate text-xs text-ink-500">
           <span className="font-mono font-medium text-ink-700">{alert.vehicleReg}</span>
-          {' · '}
+          {', '}
           {alert.driver}
-          {alert.locationLabel ? ` · ${alert.locationLabel}` : ''}
+          {alert.locationLabel ? `, ${alert.locationLabel}` : ''}
         </p>
       </div>
       <div className="hidden shrink-0 text-right sm:block">

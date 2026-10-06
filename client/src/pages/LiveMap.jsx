@@ -80,13 +80,6 @@ export default function LiveMap() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-ink-900 sm:text-2xl">Live map</h1>
-          <p className="mt-0.5 text-sm text-ink-500">
-            {visible.length} of {vehicles.data?.length ?? 0} simulated vehicles, refreshed every 5
-            seconds. Positions are simulated, not GPS.
-          </p>
-        </div>
         <div className="flex items-center gap-2">
           {vehicles.loading && <Spinner className="h-4 w-4 text-ink-400" />}
           <span className="text-xs text-ink-400">

@@ -1,14 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth.jsx';
-import { NOTICE_LABEL } from '../lib/constants.js';
-import NoticeBadge from '../components/NoticeBadge.jsx';
 import { Spinner } from '../components/Feedback.jsx';
-
-const ACCOUNTS = [
-  { email: 'admin@lusaka1.io', password: 'lusaka1pw', role: 'Administrator', blurb: 'Can work alerts and reset the data' },
-  { email: 'monitor@lusaka1.io', password: 'lusaka1pw', role: 'Monitor', blurb: 'Control room view, verify and resolve' },
-];
 
 export default function Login() {
   const { signIn, user } = useAuth();
@@ -36,16 +29,17 @@ export default function Login() {
     }
   };
 
-  const useAccount = (account) => {
-    setEmail(account.email);
-    setPassword(account.password);
-    setError(null);
-  };
-
   return (
     <div className="flex min-h-screen flex-col bg-ink-900 lg:flex-row">
       {/* --------------------------------------------------------- brand side */}
       <div className="relative flex flex-col justify-between overflow-hidden px-6 py-8 text-white lg:w-1/2 lg:px-14 lg:py-14">
+        <img
+          src="/truck1.jpg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover opacity-45"
+        />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-ink-900/65" />
         <div
           aria-hidden
           className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-brand-600/20 blur-3xl"
@@ -55,14 +49,16 @@ export default function Login() {
           className="pointer-events-none absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-brand-600/10 blur-3xl"
         />
 
-        <div className="relative">
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600 text-lg font-black text-white">
-              L
-            </span>
+        <div className="relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-20 items-center justify-center overflow-hidden rounded-xl bg-white p-2 shadow-lg">
+              <img src="/logo1.jpg" alt="Lusaka 1" className="h-full w-full object-contain" />
+            </div>
             <div>
-              <p className="text-lg font-bold leading-tight">Lusaka 1</p>
-              <p className="text-xs text-ink-400">Asset Portfolio Tracking</p>
+              <p className="text-2xl font-bold italic leading-none tracking-tight text-blue-400">Lusaka</p>
+              <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-white">
+                One Innovation
+              </p>
             </div>
           </div>
 
@@ -99,12 +95,12 @@ export default function Login() {
               </li>
             ))}
           </ul>
+
         </div>
 
-        <div className="relative mt-10">
-          <NoticeBadge variant="hero" />
-          <p className="mt-3 max-w-md text-xs leading-relaxed text-ink-400">
-            Vehicle positions, drivers and incidents on this dashboard are randomly generated
+        <div className="relative z-10 mt-10">
+          <p className="max-w-md text-xs leading-relaxed text-ink-400">
+            Vehicle positions, drivers and incidents on this dashboard are randomly simulated for
             for illustration only. This is not a live fleet-tracking system and contains no real
             customer data.
           </p>
@@ -112,13 +108,16 @@ export default function Login() {
       </div>
 
       {/* ---------------------------------------------------------- form side */}
-      <div className="flex flex-1 items-center justify-center bg-ink-100 px-4 py-10 sm:px-8">
-        <div className="w-full max-w-md">
+      <div className="relative isolate flex flex-1 items-center justify-center overflow-hidden bg-ink-900 px-4 py-10 sm:px-8">
+        <img
+          src="/lsk1.jpg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full scale-105 object-cover blur-[1px]"
+        />
+        <div className="relative z-10 w-full max-w-md">
           <div className="card p-6 sm:p-7">
             <h2 className="text-xl font-bold text-ink-900">Sign in</h2>
-            <p className="mt-1 text-sm text-ink-500">
-              Use either pre-seeded account. No real credentials are involved.
-            </p>
 
             <form onSubmit={submit} className="mt-6 space-y-4">
               <div>
@@ -164,40 +163,6 @@ export default function Login() {
             </form>
           </div>
 
-          <div className="card mt-4 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">
-              Accounts
-            </p>
-            <ul className="mt-3 space-y-2">
-              {ACCOUNTS.map((account) => (
-                <li key={account.email}>
-                  <button
-                    type="button"
-                    onClick={() => useAccount(account)}
-                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-ink-200 px-3 py-2.5 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate font-mono text-xs font-semibold text-ink-800">
-                        {account.email}
-                      </span>
-                      <span className="block truncate text-[11px] text-ink-500">{account.blurb}</span>
-                    </span>
-                    <span className="chip shrink-0 bg-ink-100 text-ink-600 ring-1 ring-ink-200">
-                      {account.role}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 border-t border-ink-100 pt-3 text-[11px] text-ink-500">
-              Password for both accounts is <code className="font-mono font-semibold">lusaka1pw</code>.
-              Tokens live in memory only and expire when the server restarts.
-            </p>
-          </div>
-
-          <p className="mt-4 text-center text-[11px] leading-relaxed text-ink-500">
-            {NOTICE_LABEL}. Road geometry comes from OpenStreetMap; everything else is simulated.
-          </p>
         </div>
       </div>
     </div>
