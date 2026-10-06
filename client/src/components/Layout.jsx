@@ -162,7 +162,7 @@ export function Layout() {
       {/* ------------------------------------------------------ desktop sidebar */}
       <aside className="no-print relative isolate hidden shrink-0 flex-col overflow-hidden bg-ink-900 text-ink-100 lg:flex lg:h-screen lg:w-60 lg:sticky lg:top-0 xl:w-64">
         <img
-          src="/lsk1.jpg"
+          src="/leftpanel.jpg"
           alt=""
           aria-hidden="true"
           className="absolute inset-0 h-full w-full scale-105 object-cover opacity-30 blur-[2px]"
@@ -203,7 +203,7 @@ export function Layout() {
           />
           <div className="absolute inset-y-0 left-0 isolate flex w-[17rem] max-w-[85vw] flex-col overflow-hidden bg-ink-900 text-ink-100 shadow-2xl">
             <img
-              src="/lsk1.jpg"
+              src="/leftpanel.jpg"
               alt=""
               aria-hidden="true"
               className="absolute inset-0 h-full w-full scale-105 object-cover opacity-30 blur-[2px]"
@@ -242,15 +242,8 @@ export function Layout() {
       {/* ---------------------------------------------------------- content */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* mobile top bar */}
-        <div className="no-print sticky top-0 z-30 overflow-hidden border-b border-ink-800 bg-ink-900 lg:hidden">
-          <img
-            src="/header.jpg"
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full scale-105 object-cover opacity-60 blur-[2px]"
-          />
-          <div aria-hidden="true" className="absolute inset-0 bg-ink-900/45" />
-          <div className="relative z-10 flex items-center gap-3 px-3 py-2.5">
+        <div className="no-print sticky top-0 z-30 border-b border-ink-800 bg-ink-900 lg:hidden">
+          <div className="flex items-center gap-3 px-3 py-2.5">
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
@@ -280,15 +273,8 @@ export function Layout() {
         </div>
 
         {/* desktop header */}
-        <header className="no-print relative hidden items-center justify-between gap-4 overflow-hidden border-b border-ink-800 bg-ink-900 px-6 py-4 lg:flex">
-          <img
-            src="/header.jpg"
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full scale-105 object-cover opacity-60 blur-[2px]"
-          />
-          <div aria-hidden="true" className="absolute inset-0 bg-ink-900/45" />
-          <div className="relative z-10">
+        <header className="no-print hidden items-center justify-between gap-4 border-b border-ink-800 bg-ink-900 px-6 py-4 lg:flex">
+          <div>
             {isMapPage ? (
               <img
                 src="/location.jpg"
@@ -301,7 +287,7 @@ export function Layout() {
               </h1>
             )}
           </div>
-          <div className="relative z-10">
+          <div>
             <LiveIndicator stats={stats} />
           </div>
         </header>
