@@ -6,13 +6,13 @@ import { DATA_DIR, DB_PATH, TURSO_TOKEN, TURSO_URL } from './config.js';
 /**
  * One driver, one SQL dialect. With TURSO_URL set the API talks to a remote
  * libSQL database (Turso); without it the same driver opens the local SQLite
- * file. Remote is the deployment target, local is the zero-setup demo path.
+ * file. Remote is the deployment target, local is the zero-setup path.
  */
 const remote = Boolean(TURSO_URL);
 
 if (remote && !TURSO_TOKEN) {
   throw new Error(
-    'TURSO_URL is set but TURSO_AUTH_TOKEN is empty. The demo writes on every request, ' +
+    'TURSO_URL is set but TURSO_AUTH_TOKEN is empty. The API writes on every request, ' +
       'so it needs a token. Create one with: turso db tokens create <db-name>\n' +
       'Then put both values in server/.env (see server/.env.example).',
   );
@@ -32,7 +32,7 @@ export const driver = remote ? 'turso' : 'local-sqlite';
 /**
  * libSQL returns every INTEGER as a JS BigInt. That is more faithful than the
  * old driver but it breaks `JSON.stringify`, so normalise the common case back
- * to Number. Anything genuinely beyond 2^53 does not occur in this demo.
+ * to Number. Anything genuinely beyond 2^53 does not occur here.
  */
 function normalise(row) {
   if (!row) return row;
@@ -90,11 +90,35 @@ let activeTx = null;
 /** Serialises transactions: a remote database has no nested write transactions. */
 let txQueue = Promise.resolve();
 
-const run = (sql, params) =>
-  (activeTx
-    ? activeTx.execute({ sql, args: bind(params) })
-    : client.execute({ sql, args: bind(params) })
-  ).then(normaliseResult);
+/**
+ * True for the errors that mean the wire to the database dropped mid-flight.
+ * They are transient: the statement is worth one more attempt.
+ */
+function transient(err) {
+  return /TRANSACTION_CLOSED|ECONNRESET|fetch failed|socket hang up|connection/i.test(
+    `${err?.code ?? ''} ${err?.message ?? ''}`,
+  );
+}
+
+const isRead = (sql) => /^\s*(select|with)\b/i.test(sql);
+
+async function execute(sql, args) {
+  try {
+    return normaliseResult(await (activeTx ? activeTx.execute({ sql, args }) : client.execute({ sql, args })));
+  } catch (err) {
+    // A read that joined an in-flight write transaction fails with the whole
+    // transaction when that transaction's connection drops. Nothing about the
+    // read depended on the transaction, so run it on its own instead of
+    // failing a request the database was happy to answer.
+    if (isRead(sql) && transient(err)) {
+      await new Promise((r) => setTimeout(r, 250));
+      return normaliseResult(await client.execute({ sql, args }));
+    }
+    throw err;
+  }
+}
+
+const run = (sql, params) => execute(sql, bind(params));
 
 /**
  * Executes one statement many times, chunked so a single request never grows
@@ -178,7 +202,7 @@ export const db = {
 /**
  * Bump this whenever the DDL below changes. `CREATE TABLE IF NOT EXISTS` silently
  * keeps an old table, so without this guard a schema edit never reaches an
- * existing demo database. The database only ever holds simulated data, so the
+ * existing database. The database only ever holds simulated data, so the
  * safe move is to drop and rebuild.
  */
 const SCHEMA_VERSION = 2;
@@ -218,7 +242,7 @@ if (hasExistingTables && existingVersion !== SCHEMA_VERSION) {
     [...KNOWN_TABLES.map((t) => `DROP TABLE IF EXISTS ${t};`), 'DELETE FROM app_meta;'].join('\n'),
   );
   console.warn(
-    `[db] schema ${existingVersion} -> ${SCHEMA_VERSION}: rebuilt demo database (simulated data only).`,
+    `[db] schema ${existingVersion} -> ${SCHEMA_VERSION}: rebuilt database (simulated data only).`,
   );
 }
 await db

@@ -90,7 +90,10 @@ alertsRouter.get(
     const rows = await db
       .prepare(`${ALERT_SELECT} ${clause} ORDER BY a.created_at DESC, a.id DESC LIMIT @limit`)
       .all(params);
-    const total = (await db.prepare(`SELECT COUNT(*) AS n FROM alerts a ${clause}`).get(params)).n;
+    // The count has no LIMIT placeholder, so it must not be bound with `limit`:
+    // libSQL rejects a statement given an argument it does not reference.
+    const { limit: _limit, ...filters } = params;
+    const total = (await db.prepare(`SELECT COUNT(*) AS n FROM alerts a ${clause}`).get(filters)).n;
 
     res.set('X-Total-Count', String(total));
     res.json(rows.map(serialiseAlert));

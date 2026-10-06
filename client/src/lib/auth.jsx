@@ -46,6 +46,9 @@ export function AuthProvider({ children }) {
 
   const signIn = useCallback(async (email, password) => {
     const result = await api.login(email, password);
+    if (!result || typeof result !== 'object' || !result.token) {
+      throw new Error('Sign-in failed: the server returned no session. Is the API reachable?');
+    }
     storeSession({ token: result.token, user: result.user });
     setUser(result.user);
     return result;
