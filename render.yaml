@@ -1,7 +1,7 @@
 services:
   - type: web
     name: absa-demo-api
-    env: node
+    runtime: node
     plan: free
     rootDir: server
     buildCommand: npm ci
@@ -9,9 +9,9 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
-        value: 22.9.0
+        value: "22.9.0"
       - key: PORT
-        value: 4000
+        value: "4000"
       - key: TURSO_URL
         sync: false
       - key: TURSO_AUTH_TOKEN
@@ -19,11 +19,11 @@ services:
       - key: CLIENT_ORIGIN
         sync: false
       - key: SIM_ENABLED
-        value: true
+        value: "true"
 
-staticSites:
-  - name: absa-demo-client
-    type: static
+  - type: web
+    name: absa-demo-client
+    runtime: static
     rootDir: client
     buildCommand: npm ci && npm run build
     buildFilter:
@@ -32,7 +32,7 @@ staticSites:
     staticPublishPath: dist
     envVars:
       - key: NODE_VERSION
-        value: 22.9.0
+        value: "22.9.0"
     headers:
       - path: /index.html
         name: Cache-Control
