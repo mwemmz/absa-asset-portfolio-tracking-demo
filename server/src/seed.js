@@ -55,8 +55,16 @@ await db.exec(`
   DELETE FROM geofences;
   DELETE FROM routes;
   DELETE FROM users;
-  DELETE FROM sqlite_sequence WHERE name IN ('alert_events','alerts','positions','vehicles','geofences');
 `);
+
+// Restart AUTOINCREMENT from 1 so a reset reproduces the same ids as a fresh
+// database. A remote libSQL server does not allow writing sqlite_sequence (it is
+// not part of the writable schema), so this is best-effort: without it the
+// database is still correct, the row ids just keep counting up.
+await db
+  .prepare(`DELETE FROM sqlite_sequence WHERE name IN (?,?,?,?,?)`)
+  .run(['alert_events', 'alerts', 'positions', 'vehicles', 'geofences'])
+  .catch((err) => console.warn(`[seed] sqlite_sequence not writable (${err.message}); ids continue.`));
 
 /* ----------------------------------------------------------------- users */
 const insertUser = db.prepare(
@@ -175,6 +183,8 @@ const insertAll = db.transaction(async () => {
   let stoppedLeft = OPENING_MIX.stopped;
   let offlineLeft = OPENING_MIX.offline;
 
+  // Vehicles are inserted one at a time because each insert's id is needed to
+  // write its history and its current state.
   for (const [idx, row] of vehicleRows.entries()) {
     const route = routeMap.get(row.route_id);
     const info = await insertVehicle.run({
@@ -241,14 +251,16 @@ const insertAll = db.transaction(async () => {
       last_event_at: new Date(NOW - between(2, 90) * 60000).toISOString(),
     });
 
-    // history
+    // history. Batched: a sequential insert costs ~560 ms over HTTP, so 3,600
+    // of them one at a time would take half an hour.
     const stepMeters = baseSpeed * (HISTORY_STEP_MS / 3600000);
     const trail = backfill(route.points, routePos, routeDir, stepMeters, HISTORY_STEPS);
+    const historyRows = [];
     for (const [h, p] of trail.entries()) {
       const ts = new Date(NOW - (HISTORY_STEPS - h) * HISTORY_STEP_MS).toISOString();
       const moving = h < trail.length - 1 && chance(0.93);
       const gf = geofences.find((g) => pointInPolygon(p.point, g.polygon));
-      await insertPosition.run({
+      historyRows.push({
         vehicle_id: id,
         lat: p.point[0],
         lng: p.point[1],
@@ -260,6 +272,7 @@ const insertAll = db.transaction(async () => {
         ts,
       });
     }
+    await insertPosition.batch(historyRows);
 
     vehicles.push({
       id,
@@ -354,6 +367,13 @@ const startTs = NOW - HISTORY_DAYS * DAY;
 const perDay = 5;
 
 const seedAlerts = db.transaction(async () => {
+  // An alert's own id keys its audit events, so the inserts cannot be merged into
+  // one flat batch. Instead the whole run is buffered and flushed once per day:
+  // same rows, same ids, a few hundred requests instead of ~1,900.
+  const alertRows = [];
+  const eventRows = [];
+  const pending = [];
+
   for (let day = HISTORY_DAYS; day >= 0; day -= 1) {
     const dayStart = startTs + (HISTORY_DAYS - day) * DAY;
     const count = perDay + Math.floor(between(-1, 3));
@@ -395,7 +415,7 @@ const seedAlerts = db.transaction(async () => {
       const gf = chance(0.35) ? pick(geofences) : null;
       const locationLabel = gf ? gf.name : `${vehicle.route.corridor}`;
 
-      const info = await insertAlert.run({
+      alertRows.push({
         vehicle_id: vehicle.id,
         type: spec.type,
         severity: spec.severity,
@@ -414,31 +434,36 @@ const seedAlerts = db.transaction(async () => {
         resolved_by: resolvedAt ? pick(['Demo Administrator', 'Control Room Monitor']) : null,
         source: 'simulation',
       });
-      const alertId = info.lastInsertRowid;
-      const actor = pick(SYSTEM_ACTORS);
 
-      const ev = (action, from, to, note, at, who = actor, role = 'system') =>
-        insertEvent.run({
-          alert_id: alertId,
-          vehicle_id: vehicle.id,
-          action,
-          from_status: from,
-          to_status: to,
+      // The audit trail for this alert, minus its id, which the flush fills in.
+      const actor = pick(SYSTEM_ACTORS);
+      const trail = [
+        {
+          action: 'created',
+          from_status: null,
+          to_status: 'new',
           from_response: null,
           to_response: null,
-          note,
-          actor: who,
-          actor_role: role,
-          ts: at.toISOString(),
-        });
-
-      await ev('created', null, 'new', 'Alert raised automatically by the simulation engine.', createdAt);
+          note: 'Alert raised automatically by the simulation engine.',
+          actor,
+          actor_role: 'system',
+          ts: createdAt.toISOString(),
+        },
+      ];
       if (verifiedAt) {
-        await ev('verified', 'new', 'verified', pick(VERIFY_NOTES), verifiedAt, 'Control Room Monitor', 'monitor');
+        trail.push({
+          action: 'verified',
+          from_status: 'new',
+          to_status: 'verified',
+          from_response: null,
+          to_response: null,
+          note: pick(VERIFY_NOTES),
+          actor: 'Control Room Monitor',
+          actor_role: 'monitor',
+          ts: verifiedAt.toISOString(),
+        });
         if (responseStatus === 'dispatched' || responseStatus === 'on_site' || responseStatus === 'stood_down') {
-          await insertEvent.run({
-            alert_id: alertId,
-            vehicle_id: vehicle.id,
+          trail.push({
             action: 'response_dispatched',
             from_status: null,
             to_status: null,
@@ -452,11 +477,45 @@ const seedAlerts = db.transaction(async () => {
         }
       }
       if (escalatedAt) {
-        await ev('escalated', verifiedAt ? 'verified' : 'new', 'escalated', pick(ESCALATE_NOTES), escalatedAt, 'Demo Administrator', 'admin');
+        trail.push({
+          action: 'escalated',
+          from_status: verifiedAt ? 'verified' : 'new',
+          to_status: 'escalated',
+          from_response: null,
+          to_response: null,
+          note: pick(ESCALATE_NOTES),
+          actor: 'Demo Administrator',
+          actor_role: 'admin',
+          ts: escalatedAt.toISOString(),
+        });
       }
       if (resolvedAt) {
-        await ev('resolved', escalatedAt ? 'escalated' : verifiedAt ? 'verified' : 'new', 'resolved', pick(RESOLVE_NOTES), resolvedAt, 'Demo Administrator', 'admin');
+        trail.push({
+          action: 'resolved',
+          from_status: escalatedAt ? 'escalated' : verifiedAt ? 'verified' : 'new',
+          to_status: 'resolved',
+          from_response: null,
+          to_response: null,
+          note: pick(RESOLVE_NOTES),
+          actor: 'Demo Administrator',
+          actor_role: 'admin',
+          ts: resolvedAt.toISOString(),
+        });
       }
+      pending.push({ vehicleId: vehicle.id, trail });
+    }
+
+    // Flush this day's alerts, then attach the returned ids to their trails.
+    const batch = alertRows.splice(0);
+    const inserted = await insertAlert.batch(batch);
+    const toFlush = pending.splice(0, batch.length);
+    for (const [i, result] of inserted.entries()) {
+      const alertId = result.lastInsertRowid;
+      const { vehicleId, trail } = toFlush[i];
+      for (const e of trail) eventRows.push({ alert_id: alertId, vehicle_id: vehicleId, ...e });
+    }
+    if (eventRows.length) {
+      await insertEvent.batch(eventRows.splice(0));
     }
   }
 });

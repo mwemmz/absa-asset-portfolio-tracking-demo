@@ -97,6 +97,23 @@ const run = (sql, params) =>
   ).then(normaliseResult);
 
 /**
+ * Executes one statement many times, chunked so a single request never grows
+ * unbounded. Returns the raw statements because only inserts that the caller
+ * needs an id from will read a value out of this.
+ */
+async function runMany(sql, rows) {
+  if (!rows.length) return [];
+  const CHUNK = 200;
+  const out = [];
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const slice = rows.slice(i, i + CHUNK).map((r) => ({ sql, args: bind(r) }));
+    const res = activeTx ? await activeTx.batch(slice) : await client.batch(slice);
+    for (const r of res) out.push(normaliseResult(r));
+  }
+  return out;
+}
+
+/**
  * libSQL is HTTP-based, so every query returns a promise. This adapter keeps
  * the better-sqlite3 call shape (`db.prepare(sql).get(params)`) so the query
  * code stays readable and only needed `await` added at each call site.
@@ -107,6 +124,17 @@ export const db = {
       get: async (params) => (await run(sql, params)).rows[0] ?? null,
       all: async (params) => (await run(sql, params)).rows,
       run: (params) => run(sql, params),
+
+      /**
+       * Many copies of one statement in a single round trip. On a remote libSQL
+       * server a sequential statement costs ~560 ms of latency, while 200 of them
+       * batched cost about a second, so bulk work must go through here or the
+       * seed takes hours instead of seconds.
+       *
+       * Inside `db.transaction()` this stays in the same transaction, so batching
+       * does not weaken the atomicity of a bulk write.
+       */
+      batch: (rows) => runMany(sql, rows),
     };
   },
 
@@ -164,23 +192,41 @@ if (!remote) {
   await client.execute('PRAGMA foreign_keys = ON').catch(() => {});
 }
 
-const versionRow = await client.execute('PRAGMA user_version');
-const existingVersion = Number(versionRow.rows[0]?.user_version ?? 0);
-
-const found = await client.execute(
-  `SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (${KNOWN_TABLES.map(() => '?').join(', ')})`,
-  KNOWN_TABLES,
+// The schema version lives in a table rather than `PRAGMA user_version`, because a
+// remote libSQL server rejects PRAGMA over the wire ("SQL not allowed statement").
+// One row in one table behaves the same on both drivers.
+await client.execute(
+  'CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)',
 );
-const hasExistingTables = found.rows.length > 0;
+
+const versionRow = await db
+  .prepare('SELECT value FROM app_meta WHERE key = ?')
+  .get(['schema_version']);
+const existingVersion = Number(versionRow?.value ?? 0);
+
+const found = await db
+  .prepare(
+    `SELECT name FROM sqlite_master WHERE type = 'table'
+      AND name IN (${KNOWN_TABLES.map(() => '?').join(', ')})`,
+  )
+  .all(KNOWN_TABLES);
+const hasExistingTables = found.length > 0;
 
 // A database with no tables is fresh. Anything else with a mismatched version is stale.
 if (hasExistingTables && existingVersion !== SCHEMA_VERSION) {
-  await client.executeMultiple(KNOWN_TABLES.map((t) => `DROP TABLE IF EXISTS ${t};`).join('\n'));
+  await client.executeMultiple(
+    [...KNOWN_TABLES.map((t) => `DROP TABLE IF EXISTS ${t};`), 'DELETE FROM app_meta;'].join('\n'),
+  );
   console.warn(
     `[db] schema ${existingVersion} -> ${SCHEMA_VERSION}: rebuilt demo database (simulated data only).`,
   );
 }
-await client.execute(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+await db
+  .prepare(
+    `INSERT INTO app_meta (key, value) VALUES ('schema_version', ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+  )
+  .run([String(SCHEMA_VERSION)]);
 
 await db.exec(`
 CREATE TABLE IF NOT EXISTS users (

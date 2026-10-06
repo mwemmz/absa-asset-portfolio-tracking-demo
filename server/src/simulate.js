@@ -349,9 +349,10 @@ async function moveVehicle(v, dtSec, now) {
   await detectZoneChange(v, display);
 }
 
-function writePosition(v, now) {
+/** Builds the position row for this tick; the tick batches them into one write. */
+function positionRow(v, now) {
   const zone = zoneAt([v.lat, v.lng]);
-  return S.insertPosition.run({
+  return {
     vehicle_id: v.id,
     lat: v.lat,
     lng: v.lng,
@@ -361,7 +362,7 @@ function writePosition(v, now) {
     deviation_m: Math.round(v.deviationM),
     geofence_id: zone ? zone.id : null,
     ts: new Date(now).toISOString(),
-  });
+  };
 }
 
 /**
@@ -375,27 +376,6 @@ function trackUptime(v, dtSec) {
   const reporting = v.deviceStatus === 'online' && v.commsLostSince === 0;
   const goal = reporting ? v.uptimeTarget : Math.max(0.1, v.uptimeTarget - 0.35);
   v.uptimeSeconds = clamp(v.uptimeSeconds + (goal - v.uptimeSeconds) * rate, 0.02, 0.999);
-}
-
-function persist(v, now, lastUpdate) {
-  return S.updateVehicle.run({
-    id: v.id,
-    status: v.status,
-    device_status: v.deviceStatus,
-    route_pos: v.routePos,
-    route_dir: v.routeDir,
-    lat: v.lat,
-    lng: v.lng,
-    speed_kph: v.status === 'moving' ? Math.round(v.speedKph) : 0,
-    heading: v.heading,
-    deviation_m: Math.round(v.deviationM),
-    odometer_km: Math.round(v.odometerKm * 100) / 100,
-    uptime_seconds: Math.round(v.uptimeSeconds * 100000) / 100000,
-    stopped_since: v.stoppedSince ? new Date(v.stoppedSince).toISOString() : null,
-    offline_since: v.offlineSince ? new Date(v.offlineSince).toISOString() : null,
-    last_update: lastUpdate ? new Date(lastUpdate).toISOString() : null,
-    last_event_at: new Date(now).toISOString(),
-  });
 }
 
 const INCIDENTS = [
@@ -512,7 +492,36 @@ async function triggerIncident(v, type, now) {
 }
 
 const persistAll = db.transaction(async (vehicles, now) => {
-  for (const v of vehicles) await persist(v, now, v.status === 'offline' ? v.lastUpdate : now);
+  // One batched request per tick rather than one per vehicle: sequential
+  // statements cost ~560 ms each against a remote libSQL server, which would put
+  // a 5-second tick well over budget.
+  await S.updateVehicle.batch(
+    vehicles.map((v) => ({
+      id: v.id,
+      status: v.status,
+      device_status: v.deviceStatus,
+      route_pos: v.routePos,
+      route_dir: v.routeDir,
+      lat: v.lat,
+      lng: v.lng,
+      speed_kph: v.status === 'moving' ? Math.round(v.speedKph) : 0,
+      heading: v.heading,
+      deviation_m: Math.round(v.deviationM),
+      odometer_km: Math.round(v.odometerKm * 100) / 100,
+      uptime_seconds: Math.round(v.uptimeSeconds * 100000) / 100000,
+      stopped_since: v.stoppedSince ? new Date(v.stoppedSince).toISOString() : null,
+      offline_since: v.offlineSince ? new Date(v.offlineSince).toISOString() : null,
+      // An offline device is not reporting, so its last_update stays stale rather
+      // than tracking the tick. That is what makes "silent for N minutes" real.
+      last_update:
+        v.status === 'offline'
+          ? v.lastUpdate
+            ? new Date(v.lastUpdate).toISOString()
+            : null
+          : new Date(now).toISOString(),
+      last_event_at: new Date(now).toISOString(),
+    })),
+  );
 });
 
 export async function tick() {
@@ -520,6 +529,7 @@ export async function tick() {
   const dtSec = TICK_MS / 1000;
   tickCount += 1;
   const changed = [];
+  const positionRows = [];
 
   for (const v of state.values()) {
     const wasStatus = v.status;
@@ -599,7 +609,7 @@ export async function tick() {
     }
 
     // A silent device reports nothing, so no position row and a stale lastUpdate.
-    if (v.status !== 'offline' && v.commsLostSince === 0) await writePosition(v, now);
+    if (v.status !== 'offline' && v.commsLostSince === 0) positionRows.push(positionRow(v, now));
 
     if (now >= v.nextEventAt && v.status !== 'offline') {
       await triggerIncident(v, rollIncident(), now);
@@ -609,6 +619,7 @@ export async function tick() {
     if (v.status !== wasStatus) changed.push({ id: v.id, reg: v.reg, status: v.status });
   }
 
+  await S.insertPosition.batch(positionRows);
   await persistAll([...state.values()], now);
 
   if (now - lastPruneAt > 3600000) {
