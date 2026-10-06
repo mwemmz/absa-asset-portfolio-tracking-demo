@@ -3,8 +3,8 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { usePolling } from '../lib/usePolling.js';
-import { DEMO_LABEL } from '../lib/constants.js';
-import DemoBadge from './DemoBadge.jsx';
+import { NOTICE_LABEL } from '../lib/constants.js';
+import NoticeBadge from './NoticeBadge.jsx';
 import { Spinner } from './Feedback.jsx';
 
 const NAV = [
@@ -27,10 +27,10 @@ function ResetButton() {
   if (!isAdmin) return null;
 
   const reset = async () => {
-    if (!window.confirm('Reset the demo to its clean seed data? You will be signed out.')) return;
+    if (!window.confirm('Reset the data to its clean seed state? You will be signed out.')) return;
     setBusy(true);
     try {
-      await api.resetDemo();
+      await api.resetData();
       window.localStorage.clear();
       window.location.assign('/login');
     } catch {
@@ -47,7 +47,7 @@ function ResetButton() {
       title="Restore the clean seed dataset"
     >
       {busy && <Spinner className="h-3 w-3" />}
-      Reset demo
+      Reset data
     </button>
   );
 }
@@ -164,16 +164,16 @@ export function Layout() {
       <aside className="no-print hidden shrink-0 flex-col bg-ink-900 text-ink-100 lg:flex lg:h-screen lg:w-60 lg:sticky lg:top-0 xl:w-64">
         <div className="flex items-center gap-2.5 border-b border-ink-800 px-4 py-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-sm font-black text-white">
-            A
+            L
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold leading-tight text-white">Absa</p>
+            <p className="truncate text-sm font-bold leading-tight text-white">Lusaka 1</p>
             <p className="truncate text-[11px] leading-tight text-ink-400">Asset Portfolio Tracking</p>
           </div>
         </div>
 
         <div className="border-b border-ink-800 px-3 py-3">
-          <DemoBadge className="w-full justify-center" />
+          <NoticeBadge className="w-full justify-center" />
           <p className="mt-2 text-center text-[10px] leading-tight text-ink-500">
             Zambia &middot; financed vehicles
           </p>
@@ -195,10 +195,10 @@ export function Layout() {
           <div className="absolute inset-y-0 left-0 flex w-[17rem] max-w-[85vw] flex-col bg-ink-900 text-ink-100 shadow-2xl">
             <div className="flex items-center gap-2.5 border-b border-ink-800 px-4 py-3.5">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-sm font-black text-white">
-                A
+                L
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold leading-tight text-white">Absa</p>
+                <p className="truncate text-sm font-bold leading-tight text-white">Lusaka 1</p>
                 <p className="truncate text-[11px] leading-tight text-ink-400">Asset Portfolio Tracking</p>
               </div>
               <button
@@ -214,7 +214,7 @@ export function Layout() {
             </div>
 
             <div className="border-b border-ink-800 px-3 py-3">
-              <DemoBadge className="w-full justify-center" />
+              <NoticeBadge className="w-full justify-center" />
             </div>
 
             <NavList openAlerts={openAlerts} offline={offline} onNavigate={() => setMenuOpen(false)} />
@@ -225,7 +225,7 @@ export function Layout() {
 
       {/* ---------------------------------------------------------- content */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <DemoBadge variant="banner" className="no-print" />
+        <NoticeBadge variant="banner" className="no-print" />
 
         {/* mobile top bar */}
         <div className="no-print sticky top-0 z-30 flex items-center gap-3 border-b border-ink-200 bg-white px-3 py-2.5 lg:hidden">
@@ -245,7 +245,7 @@ export function Layout() {
               {pageTitle(location.pathname)}
             </h1>
             <p className="truncate text-[10px] leading-tight text-ink-500">
-              {DEMO_LABEL} &middot; simulated data
+              {NOTICE_LABEL} &middot; simulated data
             </p>
           </div>
           <LivePill stats={stats} />
@@ -257,7 +257,7 @@ export function Layout() {
             <h1 className="text-base font-bold leading-tight text-ink-900">
               {pageTitle(location.pathname)}
             </h1>
-            <p className="text-xs text-ink-500">{DEMO_LABEL}</p>
+            <p className="text-xs text-ink-500">{NOTICE_LABEL}</p>
           </div>
           <LiveIndicator stats={stats} />
         </header>
@@ -267,9 +267,9 @@ export function Layout() {
         </main>
 
         <footer className="no-print border-t border-ink-200 bg-white px-4 py-3 text-[11px] leading-relaxed text-ink-500 sm:px-6">
-          <strong className="font-semibold text-ink-700">Concept demo.</strong> All vehicles,
-          drivers, positions and incidents on this dashboard are simulated. Not a live tracking
-          platform. No Absa customer data is shown.
+          <strong className="font-semibold text-ink-700">Simulated data.</strong> All vehicles,
+          drivers, positions and incidents on this dashboard are generated for illustration. Not a live
+          tracking platform. No real customer data is shown.
         </footer>
       </div>
     </div>

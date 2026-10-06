@@ -1,5 +1,5 @@
 /**
- * Thin API client for the demo backend.
+ * Thin API client for the Lusaka 1 backend.
  *
  * In dev the Vite proxy serves /api on the same origin, so no CORS and no base
  * URL is needed. Point VITE_API_BASE at another host to run the client against
@@ -7,11 +7,11 @@
  */
 
 const BASE = import.meta.env.VITE_API_BASE || '';
-const TOKEN_KEY = 'absa-demo.token';
-const USER_KEY = 'absa-demo.user';
+const TOKEN_KEY = 'lusaka1.token';
+const USER_KEY = 'lusaka1.user';
 
 /** Fired on a 401 so the auth provider can drop the session. */
-export const UNAUTHORISED_EVENT = 'absa-demo:unauthorised';
+export const UNAUTHORISED_EVENT = 'lusaka1:unauthorised';
 
 export function getToken() {
   try {
@@ -72,13 +72,13 @@ async function request(path, { method = 'GET', body, signal, auth = true } = {})
     });
   } catch (err) {
     if (err?.name === 'AbortError') throw err;
-    throw new ApiError(0, 'Cannot reach the demo API. Is the server running on port 4000?');
+    throw new ApiError(0, 'Cannot reach the API. Is the server running on port 4000?');
   }
 
   if (res.status === 401 && auth) {
     clearSession();
     window.dispatchEvent(new CustomEvent(UNAUTHORISED_EVENT));
-    throw new ApiError(401, 'Your demo session has expired. Sign in again.');
+    throw new ApiError(401, 'Your session has expired. Sign in again.');
   }
 
   if (res.status === 204) return null;
@@ -138,5 +138,5 @@ export const api = {
   monthlyReport: (month) => request(`/api/reports/monthly${qs({ month })}`),
   months: () => request('/api/reports/months'),
 
-  resetDemo: () => request('/api/demo/reset', { method: 'POST' }),
+  resetData: () => request('/api/reset', { method: 'POST' }),
 };

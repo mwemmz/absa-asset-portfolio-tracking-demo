@@ -1,6 +1,6 @@
 /**
  * Seed definitions. Everything here is fictional.
- * Names, registrations, customers and agreements are invented for the demo.
+ * Names, registrations, customers and agreements are invented.
  */
 
 /**
@@ -13,7 +13,7 @@ export const GEOFENCES = [
     name: 'Lusaka Depot',
     type: 'depot',
     severity: 'low',
-    description: 'Absa Lusaka operations yard. Vehicle out-and-back movements are expected here.',
+    description: 'Lusaka operations yard. Vehicle out-and-back movements are expected here.',
     polygon: [
       [-15.3862, 28.2832],
       [-15.3801, 28.2836],
@@ -53,7 +53,7 @@ export const GEOFENCES = [
     name: 'Livingstone Depot',
     type: 'depot',
     severity: 'low',
-    description: 'Absa Livingstone yard, near the tourism corridor.',
+    description: 'Livingstone yard, near the tourism corridor.',
     polygon: [
       [-17.8731, 25.8369],
       [-17.8387, 25.8376],
@@ -189,14 +189,14 @@ export function buildVehicleRows() {
 
 export const USERS = [
   {
-    email: 'admin@absa-demo',
-    password: 'demo1234',
-    name: 'Demo Administrator',
+    email: 'admin@lusaka1.io',
+    password: 'lusaka1pw',
+    name: 'System Administrator',
     role: 'admin',
   },
   {
-    email: 'monitor@absa-demo',
-    password: 'demo1234',
+    email: 'monitor@lusaka1.io',
+    password: 'lusaka1pw',
     name: 'Control Room Monitor',
     role: 'monitor',
   },

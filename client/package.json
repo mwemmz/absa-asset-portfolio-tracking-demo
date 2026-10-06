@@ -1,9 +1,9 @@
 {
-  "name": "@absa-demo/client",
+  "name": "@lusaka1/client",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Absa portfolio tracking dashboard (CONCEPT DEMO, simulated data)",
+  "description": "Lusaka 1 portfolio tracking dashboard (simulated data)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

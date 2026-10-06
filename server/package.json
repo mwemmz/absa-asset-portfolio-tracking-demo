@@ -1,9 +1,9 @@
 {
-  "name": "@absa-demo/server",
+  "name": "@lusaka1/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Portfolio tracking demo API + vehicle simulation engine",
+  "description": "Lusaka 1 portfolio tracking API + vehicle simulation engine",
   "main": "src/index.js",
   "scripts": {
     "start": "node --env-file-if-exists=.env src/index.js",

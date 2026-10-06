@@ -42,6 +42,9 @@ async function call(path, { method = 'GET', token, body, headers = {} } = {}) {
 
 const section = (t) => console.log(`\n${t}`);
 
+/** True only when the body really is an array, so one bad response cannot crash the run. */
+const each = (v, fn) => (Array.isArray(v) ? v.every(fn) : false);
+
 const VEHICLE_KEYS = ['id', 'reg', 'driver', 'status', 'lat', 'lng', 'speed', 'lastUpdate', 'deviceStatus'];
 const STATUS_VALUES = ['moving', 'stopped', 'offline'];
 const ALERT_TYPES = [
@@ -58,25 +61,25 @@ section('health');
 {
   const { status, json } = await call('/api/health');
   ok('GET /api/health -> 200', status === 200);
-  ok('health reports isDemo', json?.notice?.isDemo === true);
+  ok('health reports isSimulated', json?.notice?.isSimulated === true);
   ok('health simulation running', json?.simulation?.running === true);
 }
 
 section('auth');
 let token;
 {
-  const bad = await call('/api/login', { method: 'POST', body: { email: 'admin@absa-demo', password: 'wrong' } });
+  const bad = await call('/api/login', { method: 'POST', body: { email: 'admin@lusaka1.io', password: 'wrong' } });
   ok('POST /api/login wrong password -> 401', bad.status === 401);
 
-  const missing = await call('/api/login', { method: 'POST', body: { email: 'admin@absa-demo' } });
+  const missing = await call('/api/login', { method: 'POST', body: { email: 'admin@lusaka1.io' } });
   ok('POST /api/login missing password -> 400', missing.status === 400);
 
-  const admin = await call('/api/login', { method: 'POST', body: { email: 'admin@absa-demo', password: 'demo1234' } });
+  const admin = await call('/api/login', { method: 'POST', body: { email: 'admin@lusaka1.io', password: 'lusaka1pw' } });
   ok('POST /api/login admin -> 200', admin.status === 200);
   ok('login returns token + role', !!admin.json?.token && admin.json?.role === 'admin');
-  token = admin.json.token;
+  token = admin.json?.token ?? null;
 
-  const monitor = await call('/api/login', { method: 'POST', body: { email: 'monitor@absa-demo', password: 'demo1234' } });
+  const monitor = await call('/api/login', { method: 'POST', body: { email: 'monitor@lusaka1.io', password: 'lusaka1pw' } });
   ok('POST /api/login monitor -> 200 + role monitor', monitor.status === 200 && monitor.json?.role === 'monitor');
 
   const anon = await call('/api/vehicles');
@@ -93,14 +96,14 @@ let vehicles;
   ok('has 25 vehicles', json?.length === 25, `got ${json?.length}`);
   const missing = VEHICLE_KEYS.filter((k) => !(k in (json?.[0] ?? {})));
   ok(`every contract key present (${VEHICLE_KEYS.join(', ')})`, missing.length === 0, `missing ${missing}`);
-  ok('status values valid', json.every((v) => STATUS_VALUES.includes(v.status)));
-  ok('lat/lng in Zambia bounds', json.every((v) => v.lat > -19 && v.lat < -8 && v.lng > 21 && v.lng < 35));
+  ok('status values valid', each(json, (v) => STATUS_VALUES.includes(v.status)));
+  ok('lat/lng in Zambia bounds', each(json, (v) => v.lat > -19 && v.lat < -8 && v.lng > 21 && v.lng < 35));
   vehicles = json;
 
   const filtered = await call('/api/vehicles?status=moving', { token });
-  ok('?status=moving filters', filtered.json.every((v) => v.status === 'moving'));
+  ok('?status=moving filters', each(filtered.json, (v) => v.status === 'moving'));
   const searched = await call('/api/vehicles?q=hilux', { token });
-  ok('?q= searches reg/driver/model', searched.status === 200 && searched.json.length > 0);
+  ok('?q= searches reg/driver/model', searched.status === 200 && Array.isArray(searched.json) && searched.json.length > 0);
   const bad = await call('/api/vehicles?status=flying', { token });
   ok('?status=flying -> 400', bad.status === 400);
 }
@@ -137,10 +140,10 @@ section('GET /api/geofences');
   const { status, json } = await call('/api/geofences', { token });
   ok('-> 200', status === 200);
   ok('has >= 3 geofences', json?.length >= 3, `got ${json?.length}`);
-  ok('shape { id, name, type, polygon }', json?.every((g) => 'id' in g && 'name' in g && 'type' in g && Array.isArray(g.polygon)));
-  ok('polygons have >= 3 points', json?.every((g) => g.polygon.length >= 3));
-  ok('includes a mining zone', json?.some((g) => g.type === 'mining'));
-  ok('includes a border zone', json?.some((g) => g.type === 'border'));
+  ok('shape { id, name, type, polygon }', each(json, (g) => 'id' in g && 'name' in g && 'type' in g && Array.isArray(g.polygon)));
+  ok('polygons have >= 3 points', each(json, (g) => g.polygon.length >= 3));
+  ok('includes a mining zone', Array.isArray(json) && json.some((g) => g.type === 'mining'));
+  ok('includes a border zone', Array.isArray(json) && json.some((g) => g.type === 'border'));
 }
 
 section('GET /api/stats');
@@ -165,12 +168,12 @@ let alerts;
   const keys = ['id', 'vehicleId', 'type', 'severity', 'status', 'createdAt'];
   const missing = keys.filter((k) => !(k in (json?.[0] ?? {})));
   ok(`contract keys present (${keys.join(', ')})`, missing.length === 0, `missing ${missing}`);
-  ok('types are all contract types', json.every((a) => ALERT_TYPES.includes(a.type)), [...new Set(json.map((a) => a.type))].join(','));
-  ok('statuses are all contract statuses', json.every((a) => ALERT_STATUSES.includes(a.status)));
+  ok('types are all contract types', each(json, (a) => ALERT_TYPES.includes(a.type)), Array.isArray(json) ? [...new Set(json.map((a) => a.type))].join(',') : `got ${typeof json}`);
+  ok('statuses are all contract statuses', each(json, (a) => ALERT_STATUSES.includes(a.status)));
   alerts = json;
 
-  ok('?status=new filters', (await call('/api/alerts?status=new', { token })).json.every((a) => a.status === 'new'));
-  ok('?type=tamper filters', (await call('/api/alerts?type=tamper', { token })).json.every((a) => a.type === 'tamper'));
+  ok('?status=new filters', each((await call('/api/alerts?status=new', { token })).json, (a) => a.status === 'new'));
+  ok('?type=tamper filters', each((await call('/api/alerts?type=tamper', { token })).json, (a) => a.type === 'tamper'));
   ok('?status=bogus -> 400', (await call('/api/alerts?status=bogus', { token })).status === 400);
   ok('?type=bogus -> 400', (await call('/api/alerts?type=bogus', { token })).status === 400);
 }
@@ -252,10 +255,10 @@ section('GET /api/reports/monthly');
   ok('-> 200', status === 200);
   ok('echoes the month', json?.month === month);
   ok('has alerts by type', Array.isArray(json?.byType) && json.byType.length === ALERT_TYPES.length);
-  ok('covers all 6 contract alert types', json.byType.map((t) => t.type).sort().join() === [...ALERT_TYPES].sort().join());
+  ok('covers all 6 contract alert types', Array.isArray(json?.byType) && json.byType.map((t) => t.type).sort().join() === [...ALERT_TYPES].sort().join());
   ok('has average resolution time', 'avgResolutionHours' in (json?.performance ?? {}));
   ok('has uptime per vehicle', Array.isArray(json?.vehicles) && json.vehicles.every((v) => 'uptimePct' in v));
-  ok('vehicles carry uptime percentages', json.vehicles.every((v) => v.uptimePct >= 0 && v.uptimePct <= 100));
+  ok('vehicles carry uptime percentages', Array.isArray(json?.vehicles) && json.vehicles.every((v) => v.uptimePct >= 0 && v.uptimePct <= 100));
   ok('has a daily trend', Array.isArray(json?.trend) && json.trend.length > 0);
   ok('has a previous-month comparison', 'comparison' in (json ?? {}));
   ok('has fleet summary', 'fleet' in (json ?? {}));
@@ -274,14 +277,16 @@ section('simulation');
   const a = (await call('/api/vehicles', { token })).json;
   await new Promise((r) => setTimeout(r, 12000));
   const b = (await call('/api/vehicles', { token })).json;
-  const moved = a.filter((v, i) => {
-    const w = b[i];
-    return v.lat !== w.lat || v.lng !== w.lng;
-  });
+  const moved = Array.isArray(a) && Array.isArray(b)
+    ? a.filter((v, i) => {
+        const w = b[i];
+        return v.lat !== w.lat || v.lng !== w.lng;
+      })
+    : [];
   ok('vehicles move between polls', moved.length > 0, `${moved.length}/25 moved`);
-  ok('moving vehicles report speed > 0', b.filter((v) => v.status === 'moving').every((v) => v.speed > 0));
-  ok('stopped vehicles report speed 0', b.filter((v) => v.status === 'stopped').every((v) => v.speed === 0));
-  ok('positions stay inside Zambia', b.every((v) => v.lat > -19 && v.lat < -8 && v.lng > 21 && v.lng < 35));
+  ok('moving vehicles report speed > 0', Array.isArray(b) && b.filter((v) => v.status === 'moving').every((v) => v.speed > 0));
+  ok('stopped vehicles report speed 0', Array.isArray(b) && b.filter((v) => v.status === 'stopped').every((v) => v.speed === 0));
+  ok('positions stay inside Zambia', each(b, (v) => v.lat > -19 && v.lat < -8 && v.lng > 21 && v.lng < 35));
   const alertCount = (await call('/api/stats', { token })).json;
   ok('stats still consistent', alertCount.total === 25);
 }

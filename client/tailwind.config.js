@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Absa-flavoured palette: red, white, dark grey.
+        // Lusaka 1 palette: red, white, dark grey.
         brand: {
           50: '#fef2f2',
           100: '#fee2e2',

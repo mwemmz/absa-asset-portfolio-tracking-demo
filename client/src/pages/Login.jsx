@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth.jsx';
-import { DEMO_LABEL } from '../lib/constants.js';
-import DemoBadge from '../components/DemoBadge.jsx';
+import { NOTICE_LABEL } from '../lib/constants.js';
+import NoticeBadge from '../components/NoticeBadge.jsx';
 import { Spinner } from '../components/Feedback.jsx';
 
-const DEMO_ACCOUNTS = [
-  { email: 'admin@absa-demo', password: 'demo1234', role: 'Administrator', blurb: 'Can work alerts and reset the demo' },
-  { email: 'monitor@absa-demo', password: 'demo1234', role: 'Monitor', blurb: 'Control room view, verify and resolve' },
+const ACCOUNTS = [
+  { email: 'admin@lusaka1.io', password: 'lusaka1pw', role: 'Administrator', blurb: 'Can work alerts and reset the data' },
+  { email: 'monitor@lusaka1.io', password: 'lusaka1pw', role: 'Monitor', blurb: 'Control room view, verify and resolve' },
 ];
 
 export default function Login() {
@@ -15,8 +15,8 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [email, setEmail] = useState('admin@absa-demo');
-  const [password, setPassword] = useState('demo1234');
+  const [email, setEmail] = useState('admin@lusaka1.io');
+  const [password, setPassword] = useState('lusaka1pw');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -58,10 +58,10 @@ export default function Login() {
         <div className="relative">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600 text-lg font-black text-white">
-              A
+              L
             </span>
             <div>
-              <p className="text-lg font-bold leading-tight">Absa</p>
+              <p className="text-lg font-bold leading-tight">Lusaka 1</p>
               <p className="text-xs text-ink-400">Asset Portfolio Tracking</p>
             </div>
           </div>
@@ -102,10 +102,10 @@ export default function Login() {
         </div>
 
         <div className="relative mt-10">
-          <DemoBadge variant="hero" />
+          <NoticeBadge variant="hero" />
           <p className="mt-3 max-w-md text-xs leading-relaxed text-ink-400">
             Vehicle positions, drivers and incidents on this dashboard are randomly simulated for
-            demonstration only. This is not a live fleet-tracking system and contains no Absa
+            for illustration only. This is not a live fleet-tracking system and contains no real
             customer data.
           </p>
         </div>
@@ -115,9 +115,9 @@ export default function Login() {
       <div className="flex flex-1 items-center justify-center bg-ink-100 px-4 py-10 sm:px-8">
         <div className="w-full max-w-md">
           <div className="card p-6 sm:p-7">
-            <h2 className="text-xl font-bold text-ink-900">Sign in to the demo</h2>
+            <h2 className="text-xl font-bold text-ink-900">Sign in</h2>
             <p className="mt-1 text-sm text-ink-500">
-              Use either pre-seeded demo account. No real credentials are involved.
+              Use either pre-seeded account. No real credentials are involved.
             </p>
 
             <form onSubmit={submit} className="mt-6 space-y-4">
@@ -166,10 +166,10 @@ export default function Login() {
 
           <div className="card mt-4 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">
-              Demo accounts
+              Accounts
             </p>
             <ul className="mt-3 space-y-2">
-              {DEMO_ACCOUNTS.map((account) => (
+              {ACCOUNTS.map((account) => (
                 <li key={account.email}>
                   <button
                     type="button"
@@ -190,13 +190,13 @@ export default function Login() {
               ))}
             </ul>
             <p className="mt-3 border-t border-ink-100 pt-3 text-[11px] text-ink-500">
-              Password for both accounts is <code className="font-mono font-semibold">demo1234</code>.
+              Password for both accounts is <code className="font-mono font-semibold">lusaka1pw</code>.
               Tokens live in memory only and expire when the server restarts.
             </p>
           </div>
 
           <p className="mt-4 text-center text-[11px] leading-relaxed text-ink-500">
-            {DEMO_LABEL}. Road geometry comes from OpenStreetMap; everything else is simulated.
+            {NOTICE_LABEL}. Road geometry comes from OpenStreetMap; everything else is simulated.
           </p>
         </div>
       </div>

@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 
 import { db, driver, nowIso } from './db.js';
-import { CLIENT_ORIGIN, DEMO_NOTICE, PORT, SIM_ENABLED, TURSO_URL } from './config.js';
+import { CLIENT_ORIGIN, NOTICE, PORT, SIM_ENABLED, TURSO_URL } from './config.js';
 import { clearSessions, login, requireAuth, sessionCount } from './lib/auth.js';
 import { HttpError, handler, text } from './lib/validate.js';
 import { alertsRouter } from './routes/alerts.js';
@@ -36,7 +36,7 @@ app.get(
       driver,
       simulation: sim.status(),
       sessions: sessionCount(),
-      notice: DEMO_NOTICE,
+      notice: NOTICE,
     });
   }),
 );
@@ -47,7 +47,7 @@ app.post(
   handler(async (req, res) => {
     const email = text(req.body?.email, { max: 200, label: 'email', required: true });
     const password = text(req.body?.password, { max: 200, label: 'password', required: true });
-    res.json({ ...(await login(email, password)), notice: DEMO_NOTICE });
+    res.json({ ...(await login(email, password)), notice: NOTICE });
   }),
 );
 
@@ -92,14 +92,14 @@ app.get(
   }),
 );
 
-/* --------------------------------------------------------------- demo --- */
-/** Restore the clean seed dataset. Admin only. Keeps the demo reproducible. */
+/* ------------------------------------------------------------- system --- */
+/** Restore the clean seed dataset. Admin only. Keeps the data reproducible. */
 app.post(
-  '/api/demo/reset',
+  '/api/reset',
   requireAuth,
   handler(async (req, res) => {
     if (req.user.role !== 'admin') {
-      throw new HttpError(403, 'Only the demo administrator can reset the dataset');
+      throw new HttpError(403, 'Only the administrator can reset the dataset');
     }
     sim.stop();
     clearSessions();
@@ -108,7 +108,7 @@ app.post(
       encoding: 'utf8',
     });
     if (result.status !== 0) {
-      console.error('[demo] reset failed', result.stderr);
+      console.error('[reset] failed', result.stderr);
       throw new HttpError(500, 'Reset failed. Run "npm run reset" in /server instead.');
     }
     if (SIM_ENABLED) await sim.start();
@@ -118,7 +118,7 @@ app.post(
 
 /** Force one simulation tick - handy when you need the map to move on demand. */
 app.post(
-  '/api/demo/tick',
+  '/api/tick',
   requireAuth,
   handler(async (_req, res) => {
     res.json(await sim.tick());
@@ -175,7 +175,7 @@ const seeded = await bootRetry(ensureSeeded);
 if (SIM_ENABLED) await bootRetry(() => sim.start());
 
 const server = app.listen(PORT, () => {
-  console.log(`\n  Absa portfolio tracking - CONCEPT DEMO (simulated data)`);
+  console.log(`\n  Lusaka 1 - Asset Portfolio Tracking (simulated data)`);
   console.log(`  API      http://localhost:${PORT}/api`);
   console.log(`  Health   http://localhost:${PORT}/api/health`);
   console.log(`  Client   ${CLIENT_ORIGIN}`);

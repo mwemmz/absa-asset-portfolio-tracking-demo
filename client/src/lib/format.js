@@ -1,4 +1,4 @@
-/** Formatting helpers. The demo reports in Zambian time (Africa/Lusaka, UTC+2). */
+/** Formatting helpers. Reports use Zambian time (Africa/Lusaka, UTC+2). */
 
 const TZ = 'Africa/Lusaka';
 
@@ -124,7 +124,7 @@ export function formatNumber(value, decimals = 0) {
   }).format(Number(value));
 }
 
-/** ZMW amounts. Zambian kwacha is quoted in whole units in this demo. */
+/** ZMW amounts. Zambian kwacha is quoted in whole units. */
 export function formatZmw(value, { compact = false } = {}) {
   if (value == null) return '-';
   const n = Number(value);

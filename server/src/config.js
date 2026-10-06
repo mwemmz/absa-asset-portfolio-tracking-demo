@@ -5,7 +5,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const ROOT = path.resolve(__dirname, '..');
 export const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
-export const DB_PATH = process.env.DB_FILE || path.join(DATA_DIR, 'absa-demo.db');
+export const DB_PATH = process.env.DB_FILE || path.join(DATA_DIR, 'lusaka1.db');
 
 /**
  * Turso / libSQL. Set TURSO_URL to the `libsql://<db>.turso.io` value that
@@ -38,9 +38,9 @@ export const TZ_LABEL = 'Africa/Lusaka';
 export const CURRENCY = 'ZMW';
 
 /** Visible everywhere so nobody mistakes this for a live platform. */
-export const DEMO_NOTICE = {
-  isDemo: true,
-  label: 'Concept Demo - Simulated Data',
+export const NOTICE = {
+  isSimulated: true,
+  label: 'Simulated Data',
   detail:
-    'Vehicle positions, drivers and incidents on this dashboard are randomly simulated for demonstration only. This is not a live fleet-tracking system and contains no Absa customer data.',
+    'Vehicle positions, drivers and incidents on this dashboard are randomly generated for illustration only. This is not a live fleet-tracking system and contains no real customer data.',
 };

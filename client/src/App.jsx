@@ -17,7 +17,7 @@ function RequireAuth({ children }) {
   if (booting) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink-100">
-        <Loading label="Checking your demo session" />
+        <Loading label="Checking your session" />
       </div>
     );
   }

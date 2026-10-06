@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Absa Bank Zambia - Absa Asset Portfolio Tracking Dashboard (CONCEPT DEMO, simulated data)",
+  "description": "Lusaka 1 - Asset Portfolio Tracking dashboard (simulated data)",
   "workspaces": [
     "server",
     "client"

@@ -63,4 +63,4 @@ export const INCIDENT_STEPS = [
 
 export const STATUS_ORDER = ['new', 'verified', 'escalated', 'resolved'];
 
-export const DEMO_LABEL = 'Concept Demo - Simulated Data';
+export const NOTICE_LABEL = 'Simulated Data';

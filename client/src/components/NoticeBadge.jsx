@@ -1,10 +1,10 @@
-import { DEMO_LABEL } from '../lib/constants.js';
+import { NOTICE_LABEL } from '../lib/constants.js';
 
 /**
- * The demo disclosure. Rendered on every screen - there is no route that omits
- * it. Keep this prominent and unmissable.
+ * The simulated-data disclosure. Rendered on every screen - there is no route
+ * that omits it. Keep this prominent and unmissable.
  */
-export function DemoBadge({ variant = 'header', className = '' }) {
+export function NoticeBadge({ variant = 'header', className = '' }) {
   if (variant === 'hero') {
     return (
       <div
@@ -12,9 +12,9 @@ export function DemoBadge({ variant = 'header', className = '' }) {
       >
         <span className="relative flex h-2.5 w-2.5 shrink-0">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-60" />
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand-600" />
+          <span className="relative h-2.5 w-2.5 rounded-full bg-brand-600" />
         </span>
-        <span className="text-sm font-semibold text-brand-800">{DEMO_LABEL}</span>
+        <span className="text-sm font-semibold text-brand-800">{NOTICE_LABEL}</span>
       </div>
     );
   }
@@ -33,12 +33,12 @@ export function DemoBadge({ variant = 'header', className = '' }) {
           />
         </svg>
         <p className="text-[11px] leading-snug text-brand-900 sm:text-xs sm:leading-relaxed">
-          <strong className="font-semibold">{DEMO_LABEL}.</strong>
-          <span className="sm:hidden"> Simulated data. Not a live tracking system.</span>
+          <strong className="font-semibold">{NOTICE_LABEL}.</strong>
+          <span className="sm:hidden"> Not a live tracking system.</span>
           <span className="hidden sm:inline">
             {' '}
-            Vehicle positions, drivers and incidents are randomly simulated for demonstration only.
-            This is not a live fleet-tracking system and contains no Absa customer data.
+            Vehicle positions, drivers and incidents are randomly generated for illustration only.
+            This is not a live fleet-tracking system and contains no real customer data.
           </span>
         </p>
       </div>
@@ -47,14 +47,14 @@ export function DemoBadge({ variant = 'header', className = '' }) {
 
   return (
     <span
-      title={DEMO_LABEL}
+      title={NOTICE_LABEL}
       className={`inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-2 py-1 text-[11px]
                   font-semibold uppercase tracking-wide text-white ${className}`}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-white" />
-      Concept demo
+      Simulated data
     </span>
   );
 }
 
-export default DemoBadge;
+export default NoticeBadge;

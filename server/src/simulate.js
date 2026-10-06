@@ -3,7 +3,7 @@
  *
  * Every TICK_MS (5s by default) each simulated vehicle either moves further along
  * its assigned road polyline, sits still, or goes dark. Random incidents are
- * raised so the demo has a believable alert feed without anyone clicking buttons.
+ * raised so the app has a believable alert feed without anyone clicking buttons.
  *
  * There is no GPS hardware here and no real customer data. Everything is random.
  */
@@ -79,8 +79,8 @@ const chance = (p) => rng() < p;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /**
- * Seed the PRNG so a reset reproduces the same demo scenario. The sim is a
- * simulation - reproducible is better than unpredictable for a demo.
+ * Seed the PRNG so a reset reproduces the same scenario. The sim is a
+ * simulation - reproducible is better than unpredictable.
  */
 function seedRng(seed = 20261002) {
   let a = seed >>> 0;
@@ -202,7 +202,7 @@ export async function load() {
     const point = row.lat != null ? [row.lat, row.lng] : route.points[0];
 
     // A handful of vehicles are primed to fire an incident in the first few
-    // minutes so a short demo always shows a live alert feed.
+    // minutes so a short run always shows a live alert feed.
     const soon = index < 10;
     state.set(row.id, {
       id: row.id,
@@ -369,7 +369,7 @@ function positionRow(v, now) {
  * Uptime is a bounded rolling measure - roughly the share of recent reporting
  * windows in which the device checked in - not a running total. It eases towards
  * a per-vehicle target and is dragged down while the link is down, so it can
- * never drift outside 0-100% however long the demo runs.
+ * never drift outside 0-100% however long the sim runs.
  */
 function trackUptime(v, dtSec) {
   const rate = Math.min(1, dtSec / 86400);
@@ -404,7 +404,7 @@ async function triggerIncident(v, type, now) {
         v.stoppedSince = now;
         v.speedKph = 0;
         // The alert is raised immediately rather than after the threshold so a
-        // short demo still shows one; note explains that.
+        // short run still shows one; note explains that.
         if (!(await hasOpen(v, 'prolonged_stop'))) {
           await raiseAlert({
             vehicleId: v.id,
@@ -692,7 +692,7 @@ export function status() {
   };
 }
 
-/** Seed the PRNG so a reset reproduces the same demo scenario. */
+/** Seed the PRNG so a reset reproduces the same scenario. */
 export function resetRng(seed = 20261002) {
   seedRng(seed);
 }

@@ -1,8 +1,8 @@
 /**
- * Demo authentication.
+ * Token authentication.
  *
  * Intentionally trivial: two hardcoded users, bearer tokens held in memory.
- * Tokens are lost on restart, which is fine for a demo and means there is no
+ * Tokens are lost on restart, which means there is no
  * credential material to protect. Do not copy this into anything real.
  */
 import crypto from 'node:crypto';
@@ -57,7 +57,7 @@ function readToken(req) {
 
 export function requireAuth(req, _res, next) {
   const session = readToken(req);
-  if (!session) return next(new HttpError(401, 'Sign in to use the demo API'));
+  if (!session) return next(new HttpError(401, 'Sign in to use the API'));
   if (session.expiresAt <= Date.now()) {
     sessions.delete(req.get('authorization').split(' ')[1]);
     return next(new HttpError(401, 'Session expired, sign in again'));

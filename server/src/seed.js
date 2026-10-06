@@ -2,9 +2,9 @@
  * Seed / reset script.
  *
  *   node src/seed.js            seed only if the database is empty
- *   node src/seed.js --force    wipe and reseed (the pre-demo reset)
+ *   node src/seed.js --force    wipe and reseed (the reset)
  *
- * Everything written here is invented. No Absa customer data is used.
+ * Everything written here is invented. No real customer data is used.
  */
 import { readFileSync } from 'node:fs';
 import { db, driver, nowIso } from './db.js';
@@ -14,7 +14,7 @@ import { advanceAlongPath, bearingDeg, distanceToPolylineM, offsetM, pointInPoly
 
 const force = process.argv.includes('--force');
 
-/** Deterministic PRNG so a reset always produces the same demo. */
+/** Deterministic PRNG so a reset always produces the same dataset. */
 function mulberry32(seed) {
   let a = seed >>> 0;
   return function next() {
@@ -431,7 +431,7 @@ const seedAlerts = db.transaction(async () => {
         verified_at: verifiedAt?.toISOString() ?? null,
         escalated_at: escalatedAt?.toISOString() ?? null,
         resolved_at: resolvedAt?.toISOString() ?? null,
-        resolved_by: resolvedAt ? pick(['Demo Administrator', 'Control Room Monitor']) : null,
+        resolved_by: resolvedAt ? pick(['System Administrator', 'Control Room Monitor']) : null,
         source: 'simulation',
       });
 
@@ -484,7 +484,7 @@ const seedAlerts = db.transaction(async () => {
           from_response: null,
           to_response: null,
           note: pick(ESCALATE_NOTES),
-          actor: 'Demo Administrator',
+          actor: 'System Administrator',
           actor_role: 'admin',
           ts: escalatedAt.toISOString(),
         });
@@ -497,7 +497,7 @@ const seedAlerts = db.transaction(async () => {
           from_response: null,
           to_response: null,
           note: pick(RESOLVE_NOTES),
-          actor: 'Demo Administrator',
+          actor: 'System Administrator',
           actor_role: 'admin',
           ts: resolvedAt.toISOString(),
         });
@@ -646,4 +646,4 @@ const summary = {
 
 console.log('Seed complete:');
 for (const [k, v] of Object.entries(summary)) console.log(`  ${k.padEnd(12)} ${v}`);
-console.log('\nLogin with admin@absa-demo / demo1234  or  monitor@absa-demo / demo1234');
+console.log('\nLogin with admin@lusaka1.io / lusaka1pw  or  monitor@lusaka1.io / lusaka1pw');
