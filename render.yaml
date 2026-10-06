@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: absa-demo-api
+    env: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: node --env-file-if-exists=.env src/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.9.0
+      - key: PORT
+        value: 4000
+      - key: TURSO_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: SIM_ENABLED
+        value: true
+
+staticSites:
+  - name: absa-demo-client
+    type: static
+    rootDir: client
+    buildCommand: npm ci && npm run build
+    buildFilter:
+      paths:
+        - client/**
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: 22.9.0
+    headers:
+      - path: /index.html
+        name: Cache-Control
+        value: no-store
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
