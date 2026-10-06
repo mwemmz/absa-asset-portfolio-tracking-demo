@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: absa-demo-api
+    name: lusaka-1-api
     runtime: node
     plan: free
     rootDir: server
@@ -10,8 +10,6 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22.9.0"
-      - key: PORT
-        value: "4000"
       - key: TURSO_URL
         sync: false
       - key: TURSO_AUTH_TOKEN
@@ -22,7 +20,7 @@ services:
         value: "true"
 
   - type: web
-    name: absa-demo-client
+    name: lusaka-1-client
     runtime: static
     rootDir: client
     buildCommand: npm ci && npm run build

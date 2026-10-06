@@ -155,10 +155,26 @@ async function ensureSeeded() {
   return (await countVehicles.get()).n;
 }
 
-const seeded = await ensureSeeded();
-if (SIM_ENABLED) await sim.start();
+/** One transient Turso fetch failure should not take the whole boot down. */
+async function bootRetry(fn, attempts = 3) {
+  let lastErr;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const delay = 1000 * 2 ** i;
+      console.error(`[boot] attempt ${i + 1}/${attempts} failed: ${err.message}; retrying in ${delay}ms`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
 
-app.listen(PORT, () => {
+const seeded = await bootRetry(ensureSeeded);
+if (SIM_ENABLED) await bootRetry(() => sim.start());
+
+const server = app.listen(PORT, () => {
   console.log(`\n  Absa portfolio tracking - CONCEPT DEMO (simulated data)`);
   console.log(`  API      http://localhost:${PORT}/api`);
   console.log(`  Health   http://localhost:${PORT}/api/health`);
@@ -169,11 +185,11 @@ app.listen(PORT, () => {
 function shutdown(signal) {
   console.log(`\n[server] ${signal} received, shutting down`);
   sim.stop();
-  app.close(() => {
+  server.close(() => {
     try {
       db.close();
     } catch {
-      /* ignore */
+      /* already closed */
     }
     process.exit(0);
   });
