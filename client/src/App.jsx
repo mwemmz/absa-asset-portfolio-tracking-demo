@@ -16,7 +16,7 @@ function RequireAuth({ children }) {
 
   if (booting) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ink-100">
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
         <Loading label="Checking your session" />
       </div>
     );

@@ -2,14 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-arrive: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-gauge: 600ms;
+  --dur-bar: 600ms;
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
   }
 
   body {
-    @apply bg-ink-100 text-ink-800 antialiased;
+    @apply bg-canvas text-ink-800 antialiased;
     font-feature-settings: 'tnum' 1;
+  }
+
+  ::selection {
+    @apply bg-brand-500/25 text-ink-900;
   }
 
   /* Visible focus for keyboard users on every interactive element. */
@@ -21,7 +32,7 @@
     @apply h-2 w-2;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-ink-100;
+    @apply bg-canvas;
   }
   ::-webkit-scrollbar-thumb {
     @apply rounded-full bg-ink-300;
@@ -32,22 +43,29 @@
 }
 
 @layer components {
+  /* Elevation is declared once: shadow only, no competing hairline border. */
   .card {
-    @apply rounded-xl border border-ink-200 bg-white shadow-card;
+    @apply rounded-xl bg-white shadow-card;
   }
 
   .card-header {
     @apply flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-ink-100
-           px-3.5 py-3 sm:px-5 sm:py-4;
+           bg-canvas/50 px-3.5 py-3 sm:px-5 sm:py-4;
   }
 
   .card-title {
-    @apply text-xs font-semibold uppercase tracking-wide text-ink-500 sm:text-sm;
+    @apply text-xs font-semibold uppercase tracking-wide text-ink-600 sm:text-sm;
   }
 
   .btn {
     @apply inline-flex select-none items-center justify-center gap-2 rounded-lg px-3.5 py-2
-           text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+           text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50;
+    transition-property: background-color, border-color, color, box-shadow, transform;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+  .btn:active {
+    transform: scale(0.98);
   }
   .btn-primary {
     @apply btn bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800;
@@ -69,6 +87,7 @@
     @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800
            placeholder:text-ink-400 focus:border-brand-500 focus:outline-none
            focus:ring-1 focus:ring-brand-500;
+    caret-color: theme('colors.brand.600');
   }
 
   .label {
@@ -95,6 +114,56 @@
 
   .link {
     @apply font-medium text-brand-600 underline-offset-2 hover:underline;
+  }
+
+  /* Interactive surfaces lift only for a real pointer, never on touch. */
+  .card-lift {
+    @apply cursor-pointer;
+    transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+  }
+}
+
+/* ------------------------------------------------------------- motion ---- */
+/* One authored moment: the stat gauges filling when their value lands. */
+.gauge-arc {
+  transition: stroke-dashoffset var(--dur-gauge) var(--ease-arrive);
+}
+
+/* Value bars retarget instead of restarting when the poll brings new numbers. */
+.bar-fill {
+  transform-origin: left center;
+  transition: transform var(--dur-bar) var(--ease-arrive);
+}
+
+.split-seg {
+  transform-origin: left center;
+  transition: transform var(--dur-bar) var(--ease-arrive);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-lift:hover {
+    transform: translateY(-2px);
+    @apply shadow-lift;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gauge-arc,
+  .bar-fill,
+  .split-seg {
+    transition-duration: 0.01ms;
+  }
+  .card-lift {
+    transition: none;
+  }
+  .card-lift:hover {
+    transform: none;
+  }
+  .btn {
+    transition-duration: 0.01ms;
+  }
+  .btn:active {
+    transform: none;
   }
 }
 
@@ -173,8 +242,12 @@
   }
 
   .card {
-    @apply rounded-none border-ink-300 shadow-none;
+    @apply rounded-none border border-ink-300 bg-white shadow-none;
     break-inside: avoid;
+  }
+
+  .card-header {
+    @apply bg-white;
   }
 
   .print-break-before {

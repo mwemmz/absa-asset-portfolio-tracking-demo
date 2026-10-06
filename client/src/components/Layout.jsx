@@ -158,7 +158,7 @@ export function Layout() {
   }, [menuOpen]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-ink-50 lg:flex-row">
+    <div className="flex min-h-screen flex-col bg-canvas lg:flex-row">
       {/* ------------------------------------------------------ desktop sidebar */}
       <aside className="no-print relative isolate hidden shrink-0 flex-col overflow-hidden bg-ink-900 text-ink-100 lg:flex lg:h-screen lg:w-60 lg:sticky lg:top-0 xl:w-64">
         <img
@@ -331,10 +331,10 @@ function LiveIndicator({ stats }) {
   return (
     <div className="flex items-center gap-4">
       <div className="text-right">
-        <p className="text-[11px] uppercase tracking-wide text-ink-500">Fleet</p>
-        <p className="text-sm font-bold tabular-nums text-ink-900">
+        <p className="text-[11px] uppercase tracking-wide text-ink-400">Fleet</p>
+        <p className="text-sm font-bold tabular-nums text-white">
           {moving}
-          <span className="text-ink-400"> / {total}</span> moving
+          <span className="text-ink-300"> / {total}</span> moving
         </p>
       </div>
       <span className="relative flex h-2.5 w-2.5">

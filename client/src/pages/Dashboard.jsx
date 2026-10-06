@@ -8,6 +8,25 @@ import { Card, StatCard } from '../components/StatCard.jsx';
 import { AlertStatusPill, DevicePill, SeverityPill, StatusPill } from '../components/Badges.jsx';
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/Feedback.jsx';
 
+function shareOfFleet(total, value) {
+  if (!total) return 0;
+  return (Math.max(0, value ?? 0) / total) * 100;
+}
+
+/** Segments are painted full-width and squeezed with scaleX, so the split never animates layout. */
+function statusSegments(byStatus, total) {
+  let start = 0;
+  return ['moving', 'stopped', 'offline']
+    .map((key) => {
+      const count = byStatus?.[key] ?? 0;
+      const share = total ? count / total : 0;
+      const segment = { key, count, start, share };
+      start += share;
+      return segment;
+    })
+    .filter((segment) => segment.count > 0);
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const now = useTicker(10000);
@@ -80,12 +99,22 @@ export default function Dashboard() {
               value={formatNumber(data?.total)}
               sublabel={`${formatZmw(data?.fleetValueZmw, { compact: true })} financed value`}
               tone="ink"
+              gauge={{
+                pct: shareOfFleet(data?.total, (data?.total ?? 0) - (data?.offline ?? 0)),
+                label: 'Available',
+                index: 0,
+              }}
             />
             <StatCard
               label="Active"
               value={formatNumber(data?.active)}
               sublabel="Reporting and moving"
               tone="emerald"
+              gauge={{
+                pct: shareOfFleet(data?.total, data?.active),
+                label: 'Moving',
+                index: 1,
+              }}
               onClick={() => navigate('/vehicles?status=moving')}
               active={false}
             />
@@ -94,6 +123,11 @@ export default function Dashboard() {
               value={formatNumber(data?.stopped)}
               sublabel="Stationary over threshold"
               tone="amber"
+              gauge={{
+                pct: shareOfFleet(data?.total, data?.stopped),
+                label: 'Stopped',
+                index: 2,
+              }}
               onClick={() => navigate('/vehicles?status=stopped')}
             />
             <StatCard
@@ -101,6 +135,11 @@ export default function Dashboard() {
               value={formatNumber(data?.offline)}
               sublabel={`${formatNumber(data?.tamperedDevices ?? 0)} device tampered`}
               tone="orange"
+              gauge={{
+                pct: shareOfFleet(data?.total, data?.offline),
+                label: 'Offline',
+                index: 3,
+              }}
               onClick={() => navigate('/vehicles?status=offline')}
             />
             <StatCard
@@ -108,6 +147,12 @@ export default function Dashboard() {
               value={formatNumber(data?.alertsToday)}
               sublabel={`${formatNumber(data?.openAlerts ?? 0)} still open`}
               tone="brand"
+              gauge={{
+                pct:
+                  data?.alertsToday > 0 ? ((data?.openAlerts ?? 0) / data.alertsToday) * 100 : 0,
+                label: 'Open',
+                index: 4,
+              }}
               onClick={() => navigate('/alerts')}
             />
           </div>
@@ -159,8 +204,8 @@ export default function Dashboard() {
                     </div>
                     <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-ink-100">
                       <div
-                        className="h-full rounded-full bg-brand-500"
-                        style={{ width: `${Math.max(3, row.pct)}%` }}
+                        className="bar-fill h-full w-full rounded-full bg-brand-500"
+                        style={{ transform: `scaleX(${Math.max(0.04, row.pct / 100)})` }}
                       />
                     </div>
                   </li>
@@ -182,8 +227,10 @@ export default function Dashboard() {
                     </span>
                     <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink-100">
                       <div
-                        className={`h-full rounded-full ${SEVERITY[sev].bar}`}
-                        style={{ width: `${count ? Math.max(4, (count / max) * 100) : 0}%` }}
+                        className={`bar-fill h-full w-full rounded-full ${SEVERITY[sev].bar}`}
+                        style={{
+                          transform: `scaleX(${count ? Math.max(0.05, (count / max) * 1) : 0})`,
+                        }}
                       />
                     </div>
                     <span className="w-6 shrink-0 text-right text-sm font-semibold tabular-nums text-ink-800">
@@ -262,20 +309,19 @@ export default function Dashboard() {
 
       {/* ----------------------------------------------------- status split */}
       <Card title="Fleet status split" bodyClassName="p-5">
-        <div className="flex h-3 w-full overflow-hidden rounded-full bg-ink-100">
-          {['moving', 'stopped', 'offline'].map((key) => {
-            const count = data?.byStatus?.[key] ?? 0;
-            const pct = data?.total ? (count / data.total) * 100 : 0;
-            if (!count) return null;
-            return (
-              <div
-                key={key}
-                className={VEHICLE_STATUS[key].dot}
-                style={{ width: `${pct}%` }}
-                title={`${VEHICLE_STATUS[key].label}: ${count}`}
-              />
-            );
-          })}
+        <div className="relative h-3 w-full overflow-hidden rounded-full bg-ink-100">
+          {statusSegments(data?.byStatus, data?.total).map((segment) => (
+            <div
+              key={segment.key}
+              className={`split-seg absolute inset-y-0 left-0 w-[calc(100%+1px)] ${
+                VEHICLE_STATUS[segment.key].dot
+              }`}
+              style={{
+                transform: `translateX(${segment.start * 100}%) scaleX(${segment.share})`,
+              }}
+              title={`${VEHICLE_STATUS[segment.key].label}: ${segment.count}`}
+            />
+          ))}
         </div>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
           {['moving', 'stopped', 'offline'].map((key) => (

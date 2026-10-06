@@ -4,6 +4,8 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Workspace canvas: a cool graphite that lets white cards read as surfaces.
+        canvas: '#e5e9ee',
         // Lusaka 1 palette: red, white, dark grey.
         brand: {
           50: '#fef2f2',
@@ -42,8 +44,9 @@ export default {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       boxShadow: {
-        card: '0 1px 2px 0 rgb(16 24 40 / 0.06), 0 1px 3px 0 rgb(16 24 40 / 0.10)',
-        pop: '0 10px 30px -12px rgb(16 24 40 / 0.25)',
+        card: '0 1px 2px 0 rgb(16 24 40 / 0.05), 0 3px 8px -4px rgb(16 24 40 / 0.12), 0 16px 32px -22px rgb(16 24 40 / 0.35)',
+        pop: '0 2px 6px 0 rgb(16 24 40 / 0.08), 0 20px 44px -22px rgb(16 24 40 / 0.4)',
+        lift: '0 4px 10px -4px rgb(16 24 40 / 0.14), 0 26px 52px -24px rgb(16 24 40 / 0.45)',
       },
       keyframes: {
         'pulse-ring': {

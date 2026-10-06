@@ -1,3 +1,70 @@
+import { useEffect, useState } from 'react';
+
+const GAUGE_R = 24;
+const GAUGE_C = 2 * Math.PI * GAUGE_R;
+const STAGGER_MS = 50;
+const SETTLE_MS = 700;
+
+function Gauge({ pct, label, arcClass, index = 0 }) {
+  // The arc lands on its value after the first paint, so the fill reads as motion.
+  const [started, setStarted] = useState(false);
+  const [settled, setSettled] = useState(false);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setStarted(true));
+    const timer = setTimeout(() => setSettled(true), SETTLE_MS + index * STAGGER_MS);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, [index]);
+
+  const target = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
+  const shown = started ? target : 0;
+  const offset = GAUGE_C * (1 - shown / 100);
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative">
+        <svg
+          viewBox="0 0 56 56"
+          aria-hidden="true"
+          className={`h-10 w-10 sm:h-14 sm:w-14 ${arcClass}`}
+        >
+          <circle
+            cx="28"
+            cy="28"
+            r={GAUGE_R}
+            fill="none"
+            strokeWidth="5"
+            className="stroke-ink-200/70"
+          />
+          <circle
+            cx="28"
+            cy="28"
+            r={GAUGE_R}
+            fill="none"
+            strokeWidth="5"
+            strokeLinecap="round"
+            stroke="currentColor"
+            strokeDasharray={GAUGE_C}
+            strokeDashoffset={offset}
+            transform="rotate(-90 28 28)"
+            className="gauge-arc"
+            style={{ transitionDelay: settled ? '0ms' : `${index * STAGGER_MS}ms` }}
+          />
+        </svg>
+        <span className="absolute inset-0 grid place-items-center text-[10px] font-bold tabular-nums text-ink-700 sm:text-xs">
+          {Math.round(shown)}%
+        </span>
+      </div>
+      <span className="text-[9px] font-semibold uppercase leading-none tracking-[0.06em] text-ink-500 sm:text-[10px]">
+        {label}
+      </span>
+    </div>
+  );
+}
+
 export function StatCard({
   label,
   value,
@@ -7,13 +74,22 @@ export function StatCard({
   onClick,
   active = false,
   footer,
+  gauge,
 }) {
   const tones = {
-    ink: { icon: 'bg-ink-100 text-ink-600', value: 'text-ink-900', ring: 'hover:border-ink-300' },
-    brand: { icon: 'bg-brand-50 text-brand-600', value: 'text-brand-700', ring: 'hover:border-brand-300' },
-    emerald: { icon: 'bg-emerald-50 text-emerald-600', value: 'text-emerald-700', ring: 'hover:border-emerald-300' },
-    amber: { icon: 'bg-amber-50 text-amber-600', value: 'text-amber-700', ring: 'hover:border-amber-300' },
-    orange: { icon: 'bg-orange-50 text-orange-600', value: 'text-orange-700', ring: 'hover:border-orange-300' },
+    ink: { icon: 'bg-ink-100 text-ink-600', value: 'text-ink-900', arc: 'text-ink-700' },
+    brand: { icon: 'bg-brand-50 text-brand-600', value: 'text-brand-700', arc: 'text-brand-600' },
+    emerald: {
+      icon: 'bg-emerald-50 text-emerald-600',
+      value: 'text-emerald-700',
+      arc: 'text-emerald-600',
+    },
+    amber: { icon: 'bg-amber-50 text-amber-600', value: 'text-amber-700', arc: 'text-amber-500' },
+    orange: {
+      icon: 'bg-orange-50 text-orange-600',
+      value: 'text-orange-700',
+      arc: 'text-orange-500',
+    },
   };
   const t = tones[tone] ?? tones.ink;
   const Tag = onClick ? 'button' : 'div';
@@ -23,32 +99,31 @@ export function StatCard({
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       aria-pressed={onClick ? active : undefined}
-      className={`card flex h-full w-full flex-col items-start p-3.5 text-left transition-colors sm:p-4 xl:p-5 ${t.ring} ${
-        onClick ? 'cursor-pointer' : ''
-      } ${active ? 'border-brand-400 ring-2 ring-brand-200' : ''}`}
+      className={`card relative flex h-full w-full flex-col items-start p-3.5 text-left sm:p-4 xl:p-5 ${
+        onClick ? 'card-lift' : ''
+      } ${active ? 'ring-2 ring-brand-400 ring-offset-2 ring-offset-ink-900' : ''}`}
     >
-      <div className="flex w-full items-start justify-between gap-2">
+      {gauge && (
+        <div className="absolute right-3 top-3 sm:right-4 sm:top-4">
+          <Gauge pct={gauge.pct} label={gauge.label} arcClass={t.arc} index={gauge.index} />
+        </div>
+      )}
+
+      <div className={`w-full ${gauge ? 'pr-12 sm:pr-16' : ''}`}>
         <p className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-ink-500 sm:text-xs">
           {label}
         </p>
-        {icon && (
-          <span
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md [&>svg]:h-3.5 [&>svg]:w-3.5 sm:h-8 sm:w-8 sm:[&>svg]:h-5 sm:[&>svg]:w-5 ${t.icon}`}
-          >
-            {icon}
-          </span>
+        <p
+          className={`mt-1.5 text-2xl font-bold leading-none tabular-nums tracking-tight sm:mt-2.5 sm:text-[1.75rem] xl:text-3xl ${t.value}`}
+        >
+          {value}
+        </p>
+        {sublabel && (
+          <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-ink-500 sm:text-xs">
+            {sublabel}
+          </p>
         )}
       </div>
-      <p
-        className={`mt-1.5 text-2xl font-bold leading-none tabular-nums tracking-tight sm:mt-2.5 sm:text-[1.75rem] xl:text-3xl ${t.value}`}
-      >
-        {value}
-      </p>
-      {sublabel && (
-        <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-ink-500 sm:text-xs">
-          {sublabel}
-        </p>
-      )}
       {footer && <div className="mt-auto w-full border-t border-ink-100 pt-2.5 sm:pt-3">{footer}</div>}
     </Tag>
   );
