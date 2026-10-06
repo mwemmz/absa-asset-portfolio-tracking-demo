@@ -9,7 +9,7 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
-        value: "22.9.0"
+        value: "24"
       - key: TURSO_URL
         sync: false
       - key: TURSO_AUTH_TOKEN
@@ -30,7 +30,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: NODE_VERSION
-        value: "22.9.0"
+        value: "24"
     headers:
       - path: /index.html
         name: Cache-Control
